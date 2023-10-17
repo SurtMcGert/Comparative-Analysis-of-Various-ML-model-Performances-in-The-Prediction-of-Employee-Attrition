@@ -1,157 +1,79 @@
-# ************************************************
-# This work is licensed under a Creative Commons
-# Attribution-NonCommercial 4.0 International License.
-# ************************************************
-# ************************************************
-#  PRACTICAL BUSINESS ANALYTICS
-#  MEACHINE LEARNING & VISULISATIONS
-#
-# Practical Business Analytics
-# Dept. of Computer Science
-# University of Surrey
-# GUILDFORD
-# Surrey GU2 7XH
-#
-# UPDATE
-# 1.00      1/2/2017    Initial Version
-# 1.01      14/2/2018   NPREPROCESSING_discreteNumeric - changed for total of ten bins
-#                       Added bin number as x-axis label
-# 1.02      26/2/2018   Added NcalcMeasures(), updated NcalcConfusion() to use this.
-#                       Updated NPREPROCESSING_splitdataset() with descripition
-#                       Updated Npreprocessdataset() with scaleFlag
-# 1.03      2/3/2018    Renamed Npreprocessdataset() to NPREPROCESSING_dataset()
-#                       Added library(neuralnet) inside NLEARN_BasicNeural()
-# 1.04      5/3/2018    Added global constants - although these values should be PASSED
-#                       NPREPROCESSING_dataset() added vector manualTypes
-#                       Updated all functions to include manualTypes where required
-#                       Added NPREPROCESSING_setInitialFieldType()
-#                       Added MAX_LITERALS as a constant
-#                       Added NPREPROCESSING_removeAllSameValueField()
-#                       NPREPROCESSING_categorical() does not convert very sparse fields
-#                       Removed N_LEARN_BasicNeural() and put in lab functions source
-# 1.05      7/3/2018    NPREPROCESSING_discreteNumeric() updated to show plot for all numeric fields
-#                       & title on plot shows if field type manually set or determined by preprocessing
-# 1.06      18/2/2019   For lab 3
-# 1.07      19/2/2019   Fixed NPREPROCESSING_discreteNumeric() with scale
-# 1.08      24/2/2019   Updated NcalcConfusion()
-#                       Added NROCgraph(),NPREPROCESSING_prettyDataset()
-#           9/3/2019    Updated manual setting of field types
-#           6/8/2019    NPREPROCESSING_categorical() added "_" to make field name easier to read
-#                       NPREPROCESSING_dataset() fixed scaling to do each column seperatley
-#                       pass confidence as parameter for outlier detection
-#           7/8/2019    NPREPROCESSING_outlier() - if negative confidence then do not replace outlier
-#                       NROCgraph() - updated as the pROC library had changed
-#                       NcalcConfusion() - convert values to doubles to avoid integers overflowing
-#                       NprintMeasures() - output to viewer only
-#           8/8/2019    NplotConfusion() - added new function for pretty confusion chart
-#           21/8/2019   Removed border from the plot
-# 1.09      17/10/2019  Uddates for PBA lab 3
-# 1.10      22/10/2019  Nrescaleentireframe() return the scaled values in an object
-#                       NPLOT_correlagram() plot abs() value correlations only
-# 1.20      24/2/2020   NPREPROCESSING_redundantFields() output field names to console
-# 1.21      12/10/2020  NPREPROCESSING_discreteNumeric() use hist() to look at 10 bins
-# 1.22      26/11/2020   Changed "discreet" to "discrete" [woops!]
-# 1.23      18/2/2021   NPREPROCESSING_discreteNumeric() neater plotting
-#                       NPREPROCESSING_categorical() re-write for efficiency
-# ************************************************
-
 # Pre-Processing a Dataset functions
-
-# To manually set a field type
 # This will store $name=field name, $type=field type
 manualTypes <- data.frame()
 
-# ************************************************
-# Nrescale() :
-#
-# These are the real values, that we scale between 0-1
-# i.e. x-min / (max-min)
-#
-# INPUT:   vector - input - values to scale
-#
-# OUTPUT : vector - scaled values to [0.0,1.0]
-# ************************************************
-Nrescale<-function(input){
+# function to scale a vector between 0 and 1
+# input:
+# input - vector - values to be scaled
+# 
+# returns: a scaled vector
+rescale<-function(input){
 
   minv<-min(input)
   maxv<-max(input)
   return((input-minv)/(maxv-minv))
 }
 
-# ************************************************
-# Nrescaleentireframe() :
-#
-# Rescle the entire dataframe to [0.0,1.0]
-#
-# INPUT:   data frame - dataset - numeric data frame
-#
-# OUTPUT : data frame - scaled numeric data frame
-# ************************************************
-Nrescaleentireframe<-function(dataset){
+
+# function to rescale an entire dataframe between 0 and 1
+# input:
+# dataset - data frame - the data frame to scale
+# 
+# returns: a scaled data frame
+rescaleDataFrame<-function(dataset){
 
   scaled<-sapply(as.data.frame(dataset),Nrescale)
   return(scaled)
 }
 
-# ************************************************
-# NPREPROCESSING_removePunctuation()
-#
-# INPUT: String - fieldName - name of field
-#
-# OUTPUT : String - name of field with punctuation removed
-# ************************************************
-NPREPROCESSING_removePunctuation<-function(fieldName){
-  return(gsub("[[:punct:][:blank:]]+", "", fieldName))
+
+# function to remove punctuation from a string
+# input: 
+# input - string - the string to remove the punctuation from
+# 
+# returns: a string with no punctuation
+removePunctuation<-function(input){
+  return(gsub("[[:punct:][:blank:]]+", "", input))
 }
 
-# ************************************************
-# NreadDataset() :
+# Function to read a dataset from the working directory
+# input:
+# csvFilename - the file name of the dataset to read
 #
-# Read a CSV file from working directory
-#
-# INPUT: string - csvFilename - CSV filename
-#
-# OUTPUT : data frame - contents of the headed CSV file
-# ************************************************
-NreadDataset<-function(csvFilename){
-
+# returns: data frame - the contents of the CSV file
+readDataset<-function(csvFilename){
+  
+  # read the dataset
   dataset<-read.csv(csvFilename,encoding="UTF-8",stringsAsFactors = FALSE)
-
-  # The field names "confuse" some of the library algorithms
-  # As they do not like spaces, punctuation, etc.
-  names(dataset)<-NPREPROCESSING_removePunctuation(names(dataset))
-
+  
+  # read the names of all the variables in the dataset and remove any punctuation
+  names(dataset)<-removePunctuation(names(dataset))
+  
+  # print a confirmation
   print(paste("CSV dataset",csvFilename,"has been read. Records=",nrow(dataset)))
+  
+  # return the data frame
   return(dataset)
 }
 
-# ************************************************
-# NPREPROCESSING_setInitialFieldType() :
-#
-# Set  each field for NUMERIC or SYNBOLIC
-#
-# INPUT:
-#        String - name - name of the field to manually set
-#        String - type - manual type
-#
-# OUTPUT : None
-# ************************************************
-NPREPROCESSING_setInitialFieldType<-function(name,type){
+
+# function to set each field for NUMERIC or SYNBOLIC
+# inputs:
+# name - String - name of the field to manually set
+# type - String - the type of this field to set
+setInitialFieldType<-function(name,type){
 
   #Sets in the global environment
   manualTypes<<-rbind(manualTypes,data.frame(name=name,type=type,stringsAsFactors = FALSE))
 }
 
-# ************************************************
-# NPREPROCESSING_initialFieldType() :
-#
-# Test each field for NUMERIC or SYNBOLIC
-#
-# INPUT: Data Frame - dataset - data
-#
-# OUTPUT : Vector - Vector of types {NUMERIC, SYMBOLIC}
-# ************************************************
-NPREPROCESSING_initialFieldType<-function(dataset){
+
+# function to get if each field is either NUMERIC or SYMBOLIC
+# input:
+# dataset - data frame - the data to get the field types of
+# 
+# returns: vector of types {NUMERIC, SYBOLIC}
+getFieldTypes<-function(dataset){
 
   field_types<-vector()
   for(field in 1:(ncol(dataset))){
@@ -185,7 +107,7 @@ NPREPROCESSING_initialFieldType<-function(dataset){
 # ************************************************
 # Plots histogram for visulisation
 # ************************************************
-NPREPROCESSING_discreteNumeric<-function(dataset,field_types,cutoff){
+getDiscreteOrNumeric<-function(dataset,field_types,cutoff){
 
   #For every field in our dataset
   for(field in 1:(ncol(dataset))){
@@ -231,7 +153,7 @@ NPREPROCESSING_discreteNumeric<-function(dataset,field_types,cutoff){
 # 18/2/2021 NRT Updated for efficiency
 # ************************************************
 
-NPREPROCESSING_categorical<-function(dataset,field_types){
+categorical<-function(dataset,field_types){
 
   catagorical<-data.frame()
 
@@ -285,7 +207,7 @@ NPREPROCESSING_categorical<-function(dataset,field_types){
 #
 # OUTPUT : None
 # ************************************************
-NplotOutliers<-function(sorted,outliers,fieldName){
+plotOutliers<-function(sorted,outliers,fieldName){
 
   plot(1:length(sorted),sorted,pch=1,xlab="Unique records",ylab=paste("Sorted values",fieldName),bty="n")
   if (length(outliers)>0)
@@ -302,7 +224,7 @@ NplotOutliers<-function(sorted,outliers,fieldName){
 # OUTPUT : None
 # 221019 - plot absolute values only
 # ************************************************
-NPLOT_correlagram<-function(cr){
+PLOT_correlagram<-function(cr){
 
   #Defines the colour range
   col<-colorRampPalette(c("green", "red"))
@@ -333,7 +255,7 @@ NPLOT_correlagram<-function(cr){
 # OUTPUT : Frame - dataset with any fields removed
 # ************************************************
 
-NPREPROCESSING_redundantFields<-function(dataset,cutoff){
+removeRedundantFields<-function(dataset,cutoff){
 
   print(paste("Before redundancy check Fields=",ncol(dataset)))
 
@@ -392,7 +314,7 @@ NPREPROCESSING_redundantFields<-function(dataset,cutoff){
 # Uses   library(outliers)
 # https://cran.r-project.org/web/packages/outliers/outliers.pdf
 
-NPREPROCESSING_outlier<-function(ordinals,confidence){
+removeOutliers<-function(ordinals,confidence){
 
   #For every ordinal field in our dataset
   for(field in 1:(ncol(ordinals))){
@@ -432,7 +354,7 @@ NPREPROCESSING_outlier<-function(ordinals,confidence){
 # 070819NRT updated to output table to viewer only
 # 171019NRT added column name "Metric"
 # ************************************************
-NprintMeasures<-function(results){
+printMeasures<-function(results){
 
   #This outputs our results into the "Viewer" in RStudio
   tidyTable<-data.frame(t(t(results)))
@@ -457,7 +379,7 @@ NprintMeasures<-function(results){
 #
 # 070819NRT Plots confusion matrix
 # ************************************************
-NplotConfusion<-function(results){
+plotConfusionMatrix<-function(results){
 
   aa<-matrix(c(round(results$TP,digits=0),
                round(results$FN,digits=0),
@@ -482,7 +404,7 @@ NplotConfusion<-function(results){
 #
 # OUTPUT : double - calculated RMSE
 # ************************************************
-Nrmse<-function(actual_y,y_predicted){
+calculateRMSE<-function(actual_y,y_predicted){
 
   return(sqrt(mean((actual_y-y_predicted)^2)))
 }
@@ -508,7 +430,7 @@ Nrmse<-function(actual_y,y_predicted){
 #
 # 080819NRT added TNR measure
 # ************************************************
-NcalcMeasures<-function(TP,FN,FP,TN){
+calculateMeasures<-function(TP,FN,FP,TN){
 
   retList<-list(  "TP"=TP,
                   "FN"=FN,
@@ -547,7 +469,7 @@ NcalcMeasures<-function(TP,FN,FP,TN){
 #
 #
 # ************************************************
-NcalcConfusion<-function(expectedClass,predictedClass){
+calculateConfusionMatrix<-function(expectedClass,predictedClass){
 
   confusion<-table(factor(predictedClass,levels=0:1),factor(expectedClass,levels=0:1))
 
@@ -572,7 +494,7 @@ NcalcConfusion<-function(expectedClass,predictedClass){
 # OUTPUT : data Frame - test dataset
 #          data Frame - train dataset
 # ************************************************
-NPREPROCESSING_splitdataset<-function(combinedML){
+splitDataset<-function(combinedML){
 
   # **** Create a TRAINING dataset using 70% of the records
 
@@ -606,7 +528,7 @@ NPREPROCESSING_splitdataset<-function(combinedML){
 # Requires the library: PerformanceAnalytics
 #                       formattable
 # ************************************************
-NPREPROCESSING_prettyDataset<-function(dataset,...){
+prettyDataset<-function(dataset,...){
 
   params <- list(...)
 
