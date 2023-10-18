@@ -137,6 +137,13 @@ Model<-function(training_data,testing_data){
   # call the formula function
   formular<-modelFormula(dataset=training_data,fieldNameOutput=OUTPUT_FIELD)
   
+  # Placeholder - change in testing and final implementation
+  ModelHarry(training_data, testing_data, formular)
+  ModelChris(training_data, testing_data, formular)
+  ModelAnna(training_data, testing_data, formular)
+  ModelMelric(training_data, testing_data, formular)
+  ModelZion(training_data, testing_data, formular)
+  
   # Build the classifier
   logisticModel<-stats::glm(formular,data=training_data,family=quasibinomial)
   
@@ -254,6 +261,7 @@ pacman::p_load(char=MYLIBRARIES,install=TRUE,character.only=TRUE)
 
 # Load additional R script files
 debugSource("dataPrep.R")
+debugSource("models.R")
 
 set.seed(123)
 
