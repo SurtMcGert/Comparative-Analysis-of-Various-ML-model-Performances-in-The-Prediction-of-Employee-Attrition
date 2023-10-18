@@ -4,22 +4,27 @@
 # inputs:
 # training_data - data frame - the data to train the model on
 # testing_data - data frame - the data to evaluate the model on
-ModelHarry<-function(training_data,testing_data){
+ModelHarry<-function(training_data,testing_data, formula){
   
+  return(predictions)
 }
 
-ModelChris<-function(training_data,testing_data){
+ModelChris<-function(training_data,testing_data, formula){
   
+  return(predictions)
 }
 
-ModelAnna<-function(training_data,testing_data){
+ModelAnna<-function(training_data,testing_data, formula){
   
+  return(predictions)
 }
 
-ModelMelric<-function(training_data,testing_data){
+ModelMelric<-function(training_data,testing_data, formula){
   
+  return(predictions)
 }
 
-ModelZion<-function(training_data,testing_data){
+ModelZion<-function(training_data,testing_data, formula){
   
+  return(predictions)
 }
