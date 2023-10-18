@@ -5,6 +5,9 @@
 # training_data - data frame - the data to train the model on
 # testing_data - data frame - the data to evaluate the model on
 ModelHarry<-function(training_data,testing_data, formula){
+  # Example model
+  logisticModel<-stats::glm(formula,data=training_data,family=quasibinomial)
+  predictions<-predict(logisticModel, testing_data,type="response")
   
   return(predictions)
 }
