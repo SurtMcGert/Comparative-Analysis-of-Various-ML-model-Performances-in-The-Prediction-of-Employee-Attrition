@@ -40,28 +40,6 @@ MYLIBRARIES<-c("outliers",
 
 
 
-# Function to read a dataset from the working directory
-# input:
-# csvFilename - the file name of the dataset to read
-#
-# returns: data frame - the contents of the CSV file
-readDataset<-function(csvFilename){
-  
-  # read the dataset
-  dataset<-read.csv(csvFilename,encoding="UTF-8",stringsAsFactors = FALSE)
-  
-  # read the names of all the variables in the dataset
-  #names(dataset)<-NPREPROCESSING_removePunctuation(names(dataset))
-  
-  # print a confirmation
-  print(paste("CSV dataset",csvFilename,"has been read. Records=",nrow(dataset)))
-  
-  # return the data frame
-  return(dataset)
-}
-
-
-
 # function to generate a plot from a models predictions
 # using a dataset
 # inputs:
