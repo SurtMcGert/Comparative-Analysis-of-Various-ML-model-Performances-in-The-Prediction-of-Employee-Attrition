@@ -22,7 +22,7 @@ rescale<-function(input){
 # returns: a scaled data frame
 rescaleDataFrame<-function(dataset){
 
-  scaled<-sapply(as.data.frame(dataset),Nrescale)
+  scaled<-sapply(as.data.frame(dataset),rescale)
   return(scaled)
 }
 
@@ -268,7 +268,7 @@ removeRedundantFields<-function(dataset,cutoff){
   #Kendall is more robust for data do not necessarily come from a bivariate normal distribution.
   cr<-cor(dataset, use="everything")
   #cr[(which(cr<0))]<-0 #Positive correlation coefficients only
-  NPLOT_correlagram(cr)
+  PLOT_correlagram(cr)
 
   correlated<-which(abs(cr)>=cutoff,arr.ind = TRUE)
   list_fields_correlated<-correlated[which(correlated[,1]!=correlated[,2]),]
@@ -321,7 +321,7 @@ removeOutliers<-function(ordinals,confidence){
 
     sorted<-unique(sort(ordinals[,field],decreasing=TRUE))
     outliers<-which(outliers::scores(sorted,type="chisq",prob=abs(confidence)))
-    NplotOutliers(sorted,outliers,colnames(ordinals)[field])
+    plotOutliers(sorted,outliers,colnames(ordinals)[field])
 
     #If found records with outlier values
     if ((length(outliers>0))){
