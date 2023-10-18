@@ -4,7 +4,8 @@
 # inputs:
 # training_data - data frame - the data to train the model on
 # testing_data - data frame - the data to evaluate the model on
-ModelHarry<-function(training_data,testing_data, formula){
+# formula - R formular object - formula for model to use
+ModelHarry<-function(training_data, testing_data, formula){
   # Example model
   logisticModel<-stats::glm(formula,data=training_data,family=quasibinomial)
   predictions<-predict(logisticModel, testing_data,type="response")
@@ -12,22 +13,22 @@ ModelHarry<-function(training_data,testing_data, formula){
   return(predictions)
 }
 
-ModelChris<-function(training_data,testing_data, formula){
+ModelChris<-function(training_data, testing_data, formula){
   
   return(predictions)
 }
 
-ModelAnna<-function(training_data,testing_data, formula){
+ModelAnna<-function(training_data, testing_data, formula){
   
   return(predictions)
 }
 
-ModelMelric<-function(training_data,testing_data, formula){
+ModelMelric<-function(training_data, testing_data, formula){
   
   return(predictions)
 }
 
-ModelZion<-function(training_data,testing_data, formula){
+ModelZion<-function(training_data, testing_data, formula){
   
   return(predictions)
 }
