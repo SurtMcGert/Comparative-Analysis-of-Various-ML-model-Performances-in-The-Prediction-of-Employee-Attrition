@@ -94,19 +94,14 @@ getFieldTypes<-function(dataset){
   return(field_types)
 }
 
-# ************************************************
-# NPREPROCESSING_discreteNumeric() :
-#
-# Test NUMERIC field if DISCRETE or ORDINAL
-#
-# INPUT: data frame      - dataset     - input data
-#        vector strings  - field_types - Types per field, either {NUMERIC, SYMBOLIC}
-#        int             - cutoff      - Number of empty bins needed to determine discrete (1-10)
-#
-# OUTPUT : vector strings - Updated with types per field {DISCRETE, ORDINAL}
-# ************************************************
-# Plots histogram for visulisation
-# ************************************************
+
+# function to test if a NUMERIC field is DISCRETE or ORDINAL
+# inputs:
+# dataset - data frame - the dataset to test
+# field_types - vector strings - the types of each field, {NUMERIC, SYMBOLIC}
+# cutoff - int - the number of empty bins needed to determine discrete (1 - 10)
+# 
+# returns: a vector of strings updated wit types per field {DISCRETE, ORDINAL}
 getDiscreteOrNumeric<-function(dataset,field_types,cutoff){
 
   #For every field in our dataset
@@ -140,19 +135,13 @@ getDiscreteOrNumeric<-function(dataset,field_types,cutoff){
   return(field_types)
 }
 
-# ************************************************
-# NPREPROCESSING_categorical() :
-#
-# Transform SYMBOLIC or DISCRETE fields using 1-hot-encoding
-#
-# INPUT: data frame    - dataset      - symbolic fields
-#        vector string - field_types  - types per field {ORDINAL, SYMBOLIC, DISCRETE}
-#
-# OUTPUT : data frame    - transformed dataset
-#
-# 18/2/2021 NRT Updated for efficiency
-# ************************************************
 
+# function to transform SYMBOLIC or DISCRETE fields using 1-hot-encoding
+# inputs:
+# dataset - data frame - the dataset whos fields need encoding
+# field_types - vector string - types per field {ORDINAL, SYMBOLIC, DISCRETE}
+# 
+# returns: data frame - transofmed dataset
 categorical<-function(dataset,field_types){
 
   catagorical<-data.frame()
@@ -196,17 +185,12 @@ categorical<-function(dataset,field_types){
 
 } # endof categorical_encoding()
 
-# ************************************************
-# NplotOutliers() :
-#
-# Scatter plot of field values and colours outliers in red
-#
-# INPUT: Vector - sorted    -  points to plot as literal values
-#        Vector - outliers  - list of above points that are considered outliers
-#        String - fieldName - name of field to plot
-#
-# OUTPUT : None
-# ************************************************
+
+# function to plot a scatter plot of vield values and colour the outliers in red
+# inputs:
+# sorted - vector - points to plot as literal values
+# outliers - vector - list of above points that are considered outliers
+# fieldName - string - name of field to plot
 plotOutliers<-function(sorted,outliers,fieldName){
 
   plot(1:length(sorted),sorted,pch=1,xlab="Unique records",ylab=paste("Sorted values",fieldName),bty="n")
@@ -214,16 +198,10 @@ plotOutliers<-function(sorted,outliers,fieldName){
     points(outliers,sorted[outliers],col="red",pch=19)
 }
 
-# ************************************************
-# NPLOT_correlagram() :
-#
-# Plots PLOT_correlagram
-#
-# INPUT: data frame - cr - n x n frame of correlation coefficients
-#
-# OUTPUT : None
-# 221019 - plot absolute values only
-# ************************************************
+
+# function to plot PLOT_correlagram
+# inputs:
+# cr - data fram - n x n frame of correlation coeficients
 PLOT_correlagram<-function(cr){
 
   #Defines the colour range
@@ -242,19 +220,12 @@ PLOT_correlagram<-function(cr){
                      mar=c(1,1,1,1),bty="n")
 }
 
-# ************************************************
-# NPREPROCESSING_redundantFields() :
-#
-# Determine if an entire field is redundant
-# Uses LINEAR correlation,
-# so use with care as information will be lost
-#
-# INPUT: data frame - dataset - numeric values only
-#        double     - cutoff  - Value above which is determined redundant [0,1]
-#
-# OUTPUT : Frame - dataset with any fields removed
-# ************************************************
-
+# function to remove redundant fields using linear correlation, data will be lost so use with caution
+# inputs:
+# dataset - data frame - the dataset to work on, must be numeric values only
+# cutoff - double - value above which is determined redundant [0, 1]
+# 
+# returns: dataset with redundant fields removed
 removeRedundantFields<-function(dataset,cutoff){
 
   print(paste("Before redundancy check Fields=",ncol(dataset)))
@@ -299,21 +270,13 @@ removeRedundantFields<-function(dataset,cutoff){
   return(dataset)
 }
 
-# ************************************************
-# NPREPROCESSING_outlier() :
-#
-# Determine if a value of a record is an outlier for each field
-#
-# INPUT:   data frame - ordinals   - numeric fields only
-#          double     - confidence - Confidence above which is determined an outlier [0,1]
-#                                  - Set to negative Confidence if NOT remove outliers
-#
-# OUTPUT : data frame - ordinals with any outlier values replaced with the median of the field
-# ************************************************
-# ChiSquared method
-# Uses   library(outliers)
-# https://cran.r-project.org/web/packages/outliers/outliers.pdf
 
+# function to determine if a value of a record is an outlier
+# inputs:
+# ordinals - data frame - numeric fields only
+# confidence - double - confidence above which is determined as an outlier, set negative if you dont want to replace outliers
+# 
+# returns: a data frame of ordinals with any outlier values optionally replaced with the median of the field
 removeOutliers<-function(ordinals,confidence){
 
   #For every ordinal field in our dataset
@@ -342,21 +305,12 @@ removeOutliers<-function(ordinals,confidence){
   return(ordinals)
 }
 
-# ************************************************
-# NprintMeasures()
-#
-# Output measures to the Viewer
-#
-# INPUT:    list - results - results from NcalcConfusion()
-#
-# OUTPUT :  NONE
-#
-# 070819NRT updated to output table to viewer only
-# 171019NRT added column name "Metric"
-# ************************************************
+
+# function to output measures
+# inputs:
+# results - list - the results from a confusion matrix
 printMeasures<-function(results){
 
-  #This outputs our results into the "Viewer" in RStudio
   tidyTable<-data.frame(t(t(results)))
   names(tidyTable)[1]<-"Metric"
 
@@ -368,17 +322,9 @@ printMeasures<-function(results){
   print(t)
 }
 
-# ************************************************
-# NplotConfusion()
-#
-# Plot confusion matrix
-#
-# INPUT:    list - results - results from NcalcConfusion()
-#
-# OUTPUT :  NONE
-#
-# 070819NRT Plots confusion matrix
-# ************************************************
+# function to plot a confusion matrix
+# inputs:
+# results - list - results from a confusion matrix
 plotConfusionMatrix<-function(results){
 
   aa<-matrix(c(round(results$TP,digits=0),
@@ -392,30 +338,22 @@ plotConfusionMatrix<-function(results){
                conf.level=0,
                margin=2,
                main="TP  FP / FN   TN")
-} #endof NplotConfusion()
+}
 
-# ************************************************
-# Nrmse() :
-#
-# Calculate the RMSE statistic
-#
-# INPUT: vector - actual_y     -  numbers indicating the known class
-#        vector - y_predicted  - numbers indicating the predicted class
-#
-# OUTPUT : double - calculated RMSE
-# ************************************************
+
+# function to calculate the RMSE
+# inputs:
+# actual_y - vector - numbers indicating the known classes
+# y_predicted - vector - the predicted classes from a model
+# 
+# returns: the RMSE
 calculateRMSE<-function(actual_y,y_predicted){
 
   return(sqrt(mean((actual_y-y_predicted)^2)))
 }
-# ************************************************
-# NcalcMeasures() :
-#
-# Evaluation measures for a confusion matrix
-#
-# INPUT: numeric  - TP, FN, FP, TN
-#
-# OUTPUT: A list with the following entries:
+
+
+# function to calculate the following measures:
 #        TP        - double - True Positive records
 #        FP        - double - False Positive records
 #        TN        - double - True Negative records
@@ -427,9 +365,13 @@ calculateRMSE<-function(actual_y,y_predicted){
 #        TPR       - double - FPR measure
 #        TNR       - double - TNR measure
 #        MCC       - double - Matthew's Correlation Coeficient
-#
-# 080819NRT added TNR measure
-# ************************************************
+# inputs:
+# TP - numeric - true positive records
+# FN - numeric - false negative records
+# FP - numeric - false positive records
+# TN - numeric - true negative records
+# 
+# returns: a list with all the measures
 calculateMeasures<-function(TP,FN,FP,TN){
 
   retList<-list(  "TP"=TP,
@@ -447,18 +389,7 @@ calculateMeasures<-function(TP,FN,FP,TN){
   return(retList)
 }
 
-# ************************************************
-# NcalcConfusion() :
-#
-# Calculate a confusion matrix for 2-class classifier
-# INPUT: vector - expectedClass  - {0,1}, Expected outcome from each row (labels)
-#        vector - predictedClass - {0,1}, Predicted outcome from each row (labels)
-#
-# OUTPUT: A list with the  entries from NcalcMeasures()
-#
-# 070819NRT convert values to doubles to avoid integers overflowing
-# Updated to the following definition of the confusion matrix
-#
+# function to calculate a confusion matrix
 #                    ACTUAL
 #               ------------------
 # PREDICTED     FRAUD   |  GENUINE
@@ -466,9 +397,11 @@ calculateMeasures<-function(TP,FN,FP,TN){
 #     FRAUD      TP     |    FP
 #               ==================
 #     GENUINE    FN     |    TN
+# inputs:
+# expectedClass - vector - expected outcome from each row
+# predictedClass - vector - predicted outcome from each row
 #
-#
-# ************************************************
+# returns: a list with the TP, FP, FN, TN
 calculateConfusionMatrix<-function(expectedClass,predictedClass){
 
   confusion<-table(factor(predictedClass,levels=0:1),factor(expectedClass,levels=0:1))
@@ -482,18 +415,13 @@ calculateConfusionMatrix<-function(expectedClass,predictedClass){
 
   return(NcalcMeasures(TP,FN,FP,TN))
 
-} #endof NcalcConfusion()
+}
 
-# ************************************************
-# NPREPROCESSING_splitdataset() :
-#
-# Randomise and split entire data set
-#
-# INPUT: data Frame - combinedML - dataset
-#
-# OUTPUT : data Frame - test dataset
-#          data Frame - train dataset
-# ************************************************
+# function to split a datset into training and testing sets after randomising the data
+# intputs:
+# combinedML - data frame - the dataset to split
+# 
+# returns: a list of two data frames, one for the training and one for the testing dataset
 splitDataset<-function(combinedML){
 
   # **** Create a TRAINING dataset using 70% of the records
@@ -512,22 +440,10 @@ splitDataset<-function(combinedML){
   return(retList)
 }
 
-# ************************************************
-# NPREPROCESSING_prettyDataset()
-# Output simple dataset field analysis results as a table in "Viewer"
-#
-# REQUIRES: formattable
-#
-# INPUT: data frame    - dataset, full dataset used for train/test
-#                      - Each row is one record, each column in named
-#                      - Values are not scaled or encoded
-#        String - OPTIONAL string which is used in table as a header
-#
-# OUTPUT : none
-#
-# Requires the library: PerformanceAnalytics
-#                       formattable
-# ************************************************
+# function to print an analysis of a dataset
+# inputs:
+# dataset - data frame - the dataset to analyse
+# string - OPTIONAL string which is used as the table header
 prettyDataset<-function(dataset,...){
 
   params <- list(...)
