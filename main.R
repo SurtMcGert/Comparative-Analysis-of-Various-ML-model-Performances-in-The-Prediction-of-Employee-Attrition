@@ -14,6 +14,12 @@ HOLDOUT           <- 70                   # % split to create TRAIN dataset
 SCALE_DATASET     <- TRUE                 # Set to true to scale dataset before ML stage
 OUTLIER_CONF      <- 0.95                 # Confidence p-value for outlier detection
 
+TYPE_DISCRETE     <- "DISCRETE"           # field is discrete (numeric)
+TYPE_ORDINAL      <- "ORDINAL"            # field is continuous numeric
+TYPE_SYMBOLIC     <- "SYMBOLIC"           # field is a string
+TYPE_NUMERIC      <- "NUMERIC"            # field is initially a numeric
+TYPE_IGNORE       <- "IGNORE"             # field is not encoded
+
 DISCRETE_BINS     <- 6                    # Number of empty bins to determine discrete
 MAX_LITERALS      <- 55                   # Maximum number of 1-hot encoding new fields
 
@@ -36,6 +42,9 @@ MYLIBRARIES<-c("outliers",
                "formattable",
                "stats",
                "PerformanceAnalytics")
+
+
+
 
 
 
@@ -172,7 +181,7 @@ main<-function(){
   
   loans<-readDataset(DATASET_FILENAME)
   
-  field_types<-NPREPROCESSING_initialFieldType(loans)
+  field_types<-getFieldTypes(loans)
   
   print(field_types)
   
@@ -187,10 +196,10 @@ main<-function(){
   print(paste("SYMBOLIC FIELDS=",number_of_symbolic))
   print(symbolic_fields)
   
-  NPREPROCESSING_prettyDataset(loans)
+  prettyDataset(loans)
   
 
-  field_types1<-NPREPROCESSING_discreteNumeric(dataset=loans,
+  field_types1<-getDiscreteOrNumeric(dataset=loans,
                                                field_types=field_types,
                                                cutoff=DISCRETE_BINS)
   print(field_types1)
@@ -201,16 +210,16 @@ main<-function(){
 
   
   ordinals<-loans[,which(field_types1==TYPE_ORDINAL)]
-  ordinals<-NPREPROCESSING_outlier(ordinals=ordinals,confidence=OUTLIER_CONF)
+  ordinals<-removeOutliers(ordinals=ordinals,confidence=OUTLIER_CONF)
   
   # z-scale
   zscaled<-as.data.frame(scale(ordinals,center=TRUE, scale=TRUE))
   
   # n the chosen classifier, the input values need to be scaled to [0.0,1.0]
-  ordinalReadyforML<-Nrescaleentireframe(zscaled)
+  ordinalReadyforML<-rescaleDataFrame(zscaled)
   
   # Process the catagorical (symbolic/discrete) fields using 1-hot-encoding
-  catagoricalReadyforML<-NPREPROCESSING_categorical(dataset=loans,field_types=field_types1)
+  catagoricalReadyforML<-categorical(dataset=loans,field_types=field_types1)
   
   print(formattable::formattable(data.frame(fields=names(catagoricalReadyforML))))
   
@@ -226,7 +235,7 @@ main<-function(){
   
   # The dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
-  combinedML<-NPREPROCESSING_redundantFields(dataset=combinedML,cutoff=OUTLIER_CONF)
+  combinedML<-removeRedundantFields(dataset=combinedML,cutoff=OUTLIER_CONF)
   
   #The dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
