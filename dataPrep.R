@@ -1,3 +1,12 @@
+# The majority of these functions are from the labs, they have been renamed, some bits slightly re-written and re-commented.
+# some new functions have been added as well
+
+
+
+
+
+
+
 # Pre-Processing a Dataset functions
 # This will store $name=field name, $type=field type
 manualTypes <- data.frame()
@@ -91,6 +100,9 @@ getFieldTypes<-function(dataset){
       field_types[field]<-TYPE_SYMBOLIC
     }
   }
+  field_types <- getDiscreteOrOrdinal(dataset=dataset,
+                                      field_types=field_types,
+                                      cutoff=DISCRETE_BINS)
   return(field_types)
 }
 
@@ -102,7 +114,7 @@ getFieldTypes<-function(dataset){
 # cutoff - int - the number of empty bins needed to determine discrete (1 - 10)
 # 
 # returns: a vector of strings updated wit types per field {DISCRETE, ORDINAL}
-getDiscreteOrNumeric<-function(dataset,field_types,cutoff){
+getDiscreteOrOrdinal<-function(dataset,field_types,cutoff){
 
   #For every field in our dataset
   for(field in 1:(ncol(dataset))){
@@ -110,7 +122,6 @@ getDiscreteOrNumeric<-function(dataset,field_types,cutoff){
     #Only for fields that are all numeric
     if (field_types[field]==TYPE_NUMERIC) {
 
-      #191020NRT use R hist() function to create 10 bins
       histogramAnalysis<-hist(dataset[,field], breaks = 10, plot=FALSE)
       bins<-histogramAnalysis$counts/length(dataset[,field])*100  # Convert to %
 
@@ -130,8 +141,8 @@ getDiscreteOrNumeric<-function(dataset,field_types,cutoff){
            xlab=names(dataset[field]),ylab="Number of Records",
            yaxs="i",xaxs="i",border = NA)
 
-    } #endif numeric types
-  } #endof for
+    }
+  }
   return(field_types)
 }
 
@@ -142,7 +153,7 @@ getDiscreteOrNumeric<-function(dataset,field_types,cutoff){
 # field_types - vector string - types per field {ORDINAL, SYMBOLIC, DISCRETE}
 # 
 # returns: data frame - transofmed dataset
-categorical<-function(dataset,field_types){
+oneHotEncode<-function(dataset,field_types){
 
   catagorical<-data.frame()
 
@@ -180,10 +191,33 @@ categorical<-function(dataset,field_types){
 
   catagorical<-as.data.frame(append(catagorical,xx))
 
-  } #endof for()
+  }
   return (catagorical)
 
-} # endof categorical_encoding()
+}
+
+
+# function to remove symbolic fields that only have one value
+# inputs:
+# dataset - data frame - the dataset whos fields need encoding
+# field_types - vector string - types per field {ORDINAL, SYMBOLIC, DISCRETE}
+# 
+# returns: data frame - cleaned dataset
+cleanData<-function(dataset){
+  
+  cleanedData <- dataset
+  
+  #For every field in our dataset
+  for(field in 1:(ncol(dataset))){
+    # Convert into factors. A level for each unique string
+    ffield<-factor(dataset[,field])
+    # Check if just one value!
+    if (nlevels(ffield) ==1) {
+      cleanedData <- cleanedData[-c(field)]
+    }
+  }
+  return (cleanedData)
+}
 
 
 # function to plot a scatter plot of vield values and colour the outliers in red
@@ -444,8 +478,8 @@ splitDataset<-function(combinedML){
 # inputs:
 # dataset - data frame - the dataset to analyse
 # string - OPTIONAL string which is used as the table header
+# prettyDataset<-function(dataset,...){
 prettyDataset<-function(dataset,...){
-
   params <- list(...)
 
   tidyTable<-data.frame(Field=names(dataset),

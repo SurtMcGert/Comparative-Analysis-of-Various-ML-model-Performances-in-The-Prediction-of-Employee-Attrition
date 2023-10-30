@@ -6,8 +6,8 @@ rm(list=ls())
 # ************************************************
 # Global Environment variables
 
-DATASET_FILENAME  <- ""          # Name of input dataset file
-OUTPUT_FIELD      <- ""             # Field name of the output class to predict
+DATASET_FILENAME  <- "dataset/HR_Analytics.csv"          # Name of input dataset file
+OUTPUT_FIELD      <- "Attrition"             # Field name of the output class to predict
 
 HOLDOUT           <- 70                   # % split to create TRAIN dataset
 
@@ -36,7 +36,7 @@ MAX_LITERALS      <- 55                   # Maximum number of 1-hot encoding new
 # stats                  4.0.3
 # PerformanceAnalytics   2.0.4
 
-MYLIBRARIES<-c("outliers",
+LIBRARIES<-c("outliers",
                "corrplot",
                "MASS",
                "formattable",
@@ -175,41 +175,36 @@ Model<-function(training_data,testing_data){
 # main method
 main<-function(){
   
-  print("Inside main function")
-  
-  print(DATASET_FILENAME)
-  
-  loans<-readDataset(DATASET_FILENAME)
-  
-  field_types<-getFieldTypes(loans)
-  
-  print(field_types)
-  
-  numeric_fields<-names(loans)[field_types=="NUMERIC"]
-  symbolic_fields<-names(loans)[field_types=="SYMBOLIC"]
-  
-  number_of_numeric<-length(numeric_fields)
-  number_of_symbolic<-length(symbolic_fields)
-  
-  print(paste("NUMERIC FIELDS=",number_of_numeric))
-  print(numeric_fields)
-  print(paste("SYMBOLIC FIELDS=",number_of_symbolic))
-  print(symbolic_fields)
-  
-  prettyDataset(loans)
-  
+  print(paste("using dataset: ", DATASET_FILENAME))
 
-  field_types1<-getDiscreteOrNumeric(dataset=loans,
-                                               field_types=field_types,
-                                               cutoff=DISCRETE_BINS)
-  print(field_types1)
   
-  results<-data.frame(field=names(loans),initial=field_types,types1=field_types1)
+  # read the dataset
+  dataset<-readDataset(DATASET_FILENAME)
+  dataset <- cleanData(dataset)
+  
+  #determine each field type
+  field_types<-getFieldTypes(dataset)
+  
+  
+ 
+  
+  #numeric_fields<-names(dataset)[field_types=="NUMERIC"]
+  #symbolic_fields<-names(dataset)[field_types=="SYMBOLIC"]
+  
+ # number_of_numeric<-length(numeric_fields)
+ # number_of_symbolic<-length(symbolic_fields)
+  
+  #print(paste("NUMERIC FIELDS=",number_of_numeric))
+ # print(numeric_fields)
+ # print(paste("SYMBOLIC FIELDS=",number_of_symbolic))
+ # print(symbolic_fields)
+  
+  
+  results<-data.frame(field=names(dataset),initial=field_types,types1=field_types)
   print(formattable::formattable(results))
   
-
   
-  ordinals<-loans[,which(field_types1==TYPE_ORDINAL)]
+  ordinals<-dataset[,which(field_types==TYPE_ORDINAL)]
   ordinals<-removeOutliers(ordinals=ordinals,confidence=OUTLIER_CONF)
   
   # z-scale
@@ -219,23 +214,23 @@ main<-function(){
   ordinalReadyforML<-rescaleDataFrame(zscaled)
   
   # Process the catagorical (symbolic/discrete) fields using 1-hot-encoding
-  catagoricalReadyforML<-categorical(dataset=loans,field_types=field_types1)
+  catagoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
   print(formattable::formattable(data.frame(fields=names(catagoricalReadyforML))))
   
   # number of non-numeric fields before transformation
-  nonNumericbefore<-length(which(field_types1!=TYPE_ORDINAL))
+  #nonNumericbefore<-length(which(field_types!=TYPE_ORDINAL))
   
-  nonNumerictranformed<-ncol(catagoricalReadyforML)
-  print(paste("Symbolic fields. Before encoding=",nonNumericbefore,"After",nonNumerictranformed))
+  #nonNumerictranformed<-ncol(catagoricalReadyforML)
+  #print(paste("Symbolic fields. Before encoding=",nonNumericbefore,"After",nonNumerictranformed))
   
   
   # Combine the two sets of data that are read for ML
   combinedML<-cbind(ordinalReadyforML,catagoricalReadyforML)
   
   # The dataset for ML information
-  print(paste("Fields=",ncol(combinedML)))
-  combinedML<-removeRedundantFields(dataset=combinedML,cutoff=OUTLIER_CONF)
+  # print(paste("Fields=",ncol(combinedML)))
+  # combinedML<-removeRedundantFields(dataset=combinedML,cutoff=OUTLIER_CONF)
   
   #The dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
@@ -254,7 +249,7 @@ main<-function(){
   
   
   
-  model(training_data = training_data, testing_data = testing_data)
+  Model(training_data = training_data, testing_data = testing_data)
   
   
 }
@@ -265,7 +260,7 @@ cat("\014")
 
 # Loads the libraries
 library(pacman)
-pacman::p_load(char=MYLIBRARIES,install=TRUE,character.only=TRUE)
+pacman::p_load(char=LIBRARIES,install=TRUE,character.only=TRUE)
 
 
 # Load additional R script files
