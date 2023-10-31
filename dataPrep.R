@@ -206,6 +206,7 @@ oneHotEncode<-function(dataset,field_types){
 cleanData<-function(dataset){
   
   cleanedData <- dataset
+  markedColumns <- list()
   
   #For every field in our dataset
   for(field in 1:(ncol(dataset))){
@@ -213,11 +214,17 @@ cleanData<-function(dataset){
     ffield<-factor(dataset[,field])
     # Check if just one value!
     if (nlevels(ffield) ==1) {
-      cleanedData <- cleanedData[-c(field)]
+      #mark column for removal
+      markedColumns <- append(markedColumns, names(dataset[field]))
+      print(paste("removing ", names(dataset[field])))
     }
   }
+  #remove columns
+  #cleanedData <- subset(cleanedData, select = -c(markedIndices))
+  cleanedData <- dataset[,!(names(dataset) %in% markedColumns)]
   return (cleanedData)
 }
+
 
 
 # function to plot a scatter plot of vield values and colour the outliers in red
@@ -526,3 +533,4 @@ prettyDataset<-function(dataset,...){
                               ))
   print(t)
 }
+
