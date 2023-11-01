@@ -350,10 +350,11 @@ removeOutliers<-function(ordinals,confidence){
 # function to output measures
 # inputs:
 # results - list - the results from a confusion matrix
-printMeasures<-function(results){
+# name - string - the name of the metrics
+printMeasures<-function(results, name){
 
   tidyTable<-data.frame(t(t(results)))
-  names(tidyTable)[1]<-"Metric"
+  names(tidyTable)[1]<-name
 
   t<-formattable::formattable(tidyTable,list(
     TP = formatter("span",style = x ~ style(color = "black"),~sprintf("%.0f",TP)),
@@ -454,7 +455,7 @@ calculateConfusionMatrix<-function(expectedClass,predictedClass){
   FP<-as.double(confusion[2,1])
   TN<-as.double(confusion[1,1])
 
-  return(NcalcMeasures(TP,FN,FP,TN))
+  return(calculateMeasures(TP,FN,FP,TN))
 
 }
 

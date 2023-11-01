@@ -62,7 +62,7 @@ PlotPerformance<-function(probs,testing_data){
   
   #Vary the threshold
   for(threshold in seq(0,1,by=0.01)){
-    results<-EvaluateClassifier(probs=probs,testing_data=testing_data,threshold=threshold)
+    results<-evaluate(probs=probs,testing_data=testing_data,threshold=threshold)
     toPlot<-rbind(toPlot,data.frame(x=threshold,fpr=results$FPR,tpr=results$TPR))
   }
   
@@ -106,12 +106,12 @@ PlotPerformance<-function(probs,testing_data){
 # threshold - double - cutoff (probability for the classifier)
 # 
 # returns: list of named evaluation measures and predicted class probabilities
-evaluateClassifier<-function(probs,testing_data,threshold) {
+evaluate<-function(probs,testing_data,threshold) {
   
   predictedClass<-ifelse(as.numeric(probs)<threshold,0,1)
   expectedClass<-testing_data[,OUTPUT_FIELD]
   
-  results<-NcalcConfusion(expectedClass=expectedClass,
+  results<-calculateConfusionMatrix(expectedClass=expectedClass,
                           predictedClass=predictedClass)
   
   return(results)
@@ -142,33 +142,33 @@ modelFormula<-function(dataset,fieldNameOutput){
 # training_data - data frame - the data to train the model on
 # testing_data - data frame - the data to evaluate the model on
 Model<-function(training_data,testing_data){
-  
   # call the formula function
   formular<-modelFormula(dataset=training_data,fieldNameOutput=OUTPUT_FIELD)
   
+  
   # Placeholder - change in testing and final implementation
-  ModelHarry(training_data, testing_data, formular)
-  ModelChris(training_data, testing_data, formular)
-  ModelAnna(training_data, testing_data, formular)
-  ModelMelric(training_data, testing_data, formular)
-  ModelZion(training_data, testing_data, formular)
+  predictionNames <- c("harryPredictions", "chrisPredictions", "annaPredictions", "melricPredictions", "zionPredictions")
   
-  # Build the classifier
-  logisticModel<-stats::glm(formular,data=training_data,family=quasibinomial)
+  predictions <- list(
+    ModelHarry(training_data, testing_data, formular),
+    ModelChris(training_data, testing_data, formular),
+    ModelAnna(training_data, testing_data, formular),
+    ModelMelric(training_data, testing_data, formular),
+    ModelZion(training_data, testing_data, formular)
+  )
   
-  # Get probabilities of being class 1 from the classifier
-  probabilities<-predict(logisticModel, testing_data,type="response")
-  
-  # Evaluate the classifier on test dataset
+  # Evaluate the models
   threshold<-0.7
-  results<-myEvaluateClassifier(probs=probabilities,
-                                testing_data=testing_data,
-                                threshold=threshold)
-  
-  NprintMeasures(results)
-  
-  # Plot FPR/TPR through threshold range
-  results<-PlotPerformance(probs=probabilities,testing_data=testing_data)
+  for (i in seq(1,length(predictionNames))){
+    name <- predictionNames[i]
+    probabilities <- predictions[[i]]
+    print(paste(name))
+    if(length(probabilities) > 0){
+      results<-evaluate(probs=probabilities, testing_data=testing_data, threshold=threshold)
+      printMeasures(results, predictionNames[i])
+      results<-PlotPerformance(probs=probabilities,testing_data=testing_data)
+    }
+  }
 }
 
 
