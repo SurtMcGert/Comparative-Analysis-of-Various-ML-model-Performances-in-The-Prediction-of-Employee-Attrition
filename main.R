@@ -54,15 +54,22 @@ LIBRARIES<-c("outliers",
 # inputs:
 # probs - vector double - probability of being class 1
 # testing_data - data frame - dataset to evaluate
-PlotPerformance<-function(probs,testing_data){
+# name - string - the name of the plot
+displayPerformance<-function(probs,testing_data, name){
   
   print("plotting performance")
   
   toPlot<-data.frame()
+  bestAccuracy = 0
+  bestResults <- list()
   
   #Vary the threshold
   for(threshold in seq(0,1,by=0.01)){
     results<-evaluate(probs=probs,testing_data=testing_data,threshold=threshold)
+    if(as.numeric(results["accuracy"]) > as.numeric(bestAccuracy)){
+      bestResults = results
+      bestAccuracy = results["accuracy"]
+    }
     toPlot<-rbind(toPlot,data.frame(x=threshold,fpr=results$FPR,tpr=results$TPR))
   }
   
@@ -74,13 +81,15 @@ PlotPerformance<-function(probs,testing_data){
   
   minEuclidean<-toPlot$x[which.min(toPlot$distance)]
   
+  printMeasures(bestResults, name)
+  
   plot(x=toPlot$x,y=toPlot$tpr, type="l",col="blue",
        xlab="Threshold",
        ylab="%Rate",
-       main="Threshold Perfomance Loan Model")
+       main=name)
   
   # Plot the Euclidean distance to "perfect" classifier (smallest the best)
-  lines(toPlot$x,toPlot$distance,type="l",col="green",lwd=2,lty=3)
+  lines(toPlot$x,toPlot$distance,type="l",col="green")
   abline(v=minEuclidean,col="green",lty=3,lwd=2)
   
   # Plot the specificity (1-FPR)
@@ -165,8 +174,7 @@ Model<-function(training_data,testing_data){
     print(paste(name))
     if(length(probabilities) > 0){
       results<-evaluate(probs=probabilities, testing_data=testing_data, threshold=threshold)
-      printMeasures(results, predictionNames[i])
-      results<-PlotPerformance(probs=probabilities,testing_data=testing_data)
+      results<-displayPerformance(probs=probabilities,testing_data=testing_data, name=predictionNames[i])
     }
   }
 }
