@@ -1,15 +1,17 @@
 # Business Analytics Group Project
 
-## Datasets Used
+## Dataset Used
 
--   set 1
--   set 2
+-   https://www.kaggle.com/datasets/thedevastator/employee-attrition-and-factors
 
 ---
 
 ## Questions to be Answered by the Project
 
--   n/a
+-   What combinations of factors correlate the most to employee attrition, and how can Machine Learning be used to help?
+-   What machine learning models performs the best and are the most suitable for a business? (price to performance)
+-   What columns contribute the most towards correctly predicting employee attrition?
+-   What does the business need to do to improve employee retention so they can save more money?
 
 ## branches
 
