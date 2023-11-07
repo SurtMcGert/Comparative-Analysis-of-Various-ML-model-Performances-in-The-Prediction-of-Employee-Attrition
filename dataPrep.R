@@ -561,3 +561,17 @@ plotData <- function(data, fieldNameOutput){
   }
 }
 
+# function to print an the distribution of an attribute
+# inputs:
+# dataset - dataset
+# attribute name - name of attribute
+dataDistribution_BarPlot <- function(dataset, fieldNameOutput) {
+  dataset[[fieldNameOutput]] <- as.factor(dataset[[fieldNameOutput]])
+  newdataset <- as.data.frame(dataset)
+  c <- ggplot(newdataset, aes(x = dataset[[fieldNameOutput]])) + geom_bar()
+  c <- c + xlab(fieldNameOutput)
+  print(c)
+}
+
+
+
