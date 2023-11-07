@@ -197,17 +197,25 @@ oneHotEncode<-function(dataset,field_types){
 }
 
 
-# function to remove symbolic fields that only have one value
+# function to clean data by removing symbolic fields that only have one value and deleting a given list of variables
 # inputs:
 # dataset - data frame - the dataset whos fields need encoding
-# field_types - vector string - types per field {ORDINAL, SYMBOLIC, DISCRETE}
+# remove - list - a list of column names, to remove from the dataset
 # 
 # returns: data frame - cleaned dataset
-cleanData<-function(dataset){
-  
+cleanData<-function(dataset, remove = list()){
+  print("cleaning data")
   cleanedData <- dataset
   markedColumns <- list()
   
+  
+  #find the columns from the given list to remove
+  for(field in remove){
+    print(paste("removing ", field))
+    markedColumns <- append(markedColumns, field)
+  }
+  
+  # find columns that have the same value in every row
   #For every field in our dataset
   for(field in 1:(ncol(dataset))){
     # Convert into factors. A level for each unique string
@@ -219,9 +227,13 @@ cleanData<-function(dataset){
       print(paste("removing ", names(dataset[field])))
     }
   }
+  
+  
+  
+  
   #remove columns
-  #cleanedData <- subset(cleanedData, select = -c(markedIndices))
   cleanedData <- dataset[,!(names(dataset) %in% markedColumns)]
+  print("cleaned data")
   return (cleanedData)
 }
 
@@ -533,5 +545,19 @@ prettyDataset<-function(dataset,...){
                                    Skew = formatter("span",style = x ~ style(color = "black"),~ ifelse(Catagorical,"-",sprintf("%.2f", Skew)))
                               ))
   print(t)
+}
+
+plotData <- function(data, fieldNameOutput){
+  for(i in 1:ncol(data)){
+    name <- names(data)[i]
+    title <- paste(name, "vs")
+    title <- paste(title, fieldNameOutput)
+    print(title)
+    print(data %>% 
+      ggplot(aes(x = !!sym(name), y = !!sym(fieldNameOutput)))+
+        geom_point(size = 5, alpha = 0.1)+
+      theme_bw()+
+      labs(title = title))
+  }
 }
 

@@ -41,7 +41,8 @@ LIBRARIES<-c("outliers",
                "MASS",
                "formattable",
                "stats",
-               "PerformanceAnalytics")
+               "PerformanceAnalytics",
+               "tidyverse")
 
 
 
@@ -180,6 +181,7 @@ Model<-function(training_data,testing_data){
 }
 
 
+
 # main method
 main<-function(){
   
@@ -188,10 +190,16 @@ main<-function(){
   
   # read the dataset
   dataset<-readDataset(DATASET_FILENAME)
-  dataset <- cleanData(dataset)
-  
+  columnsToRemove <- list("MaritalStatus", "EmployeeNumber", "JobInvolvement", "PerformanceRating", "RelationshipSatisfaction", "YearsWithCurrManager")
+  dataset <- cleanData(dataset, remove = columnsToRemove)
   #determine each field type
   field_types<-getFieldTypes(dataset)
+  
+  #plot our data
+  plotData(dataset, OUTPUT_FIELD)
+  
+  
+
   
   
  
