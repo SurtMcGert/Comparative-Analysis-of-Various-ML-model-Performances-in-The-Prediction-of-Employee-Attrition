@@ -42,7 +42,8 @@ LIBRARIES<-c("outliers",
                "formattable",
                "stats",
                "PerformanceAnalytics",
-               "tidyverse")
+               "tidyverse",
+                "reshape2")
 
 
 
@@ -84,27 +85,24 @@ displayPerformance<-function(probs,testing_data, name){
   
   printMeasures(bestResults, name)
   
-  plot(x=toPlot$x,y=toPlot$tpr, type="l",col="blue",
-       xlab="Threshold",
-       ylab="%Rate",
-       main=name)
+  # melt the data into long data
+  toPlot <- melt(toPlot, id.var=1)
   
-  # Plot the Euclidean distance to "perfect" classifier (smallest the best)
-  lines(toPlot$x,toPlot$distance,type="l",col="green")
-  abline(v=minEuclidean,col="green",lty=3,lwd=2)
-  
-  # Plot the specificity (1-FPR)
-  lines(x=toPlot$x,y=100-toPlot$fpr,type="l",col="red",lwd=3,lty=1)
-  
-  # The point where specificity and sensitivity are the same
-  crosspoint<-toPlot$x[which(toPlot$tpr<(100-toPlot$fpr))[1]]
-  abline(v=crosspoint,col="red",lty=3,lwd=2)
-  
-  lines(toPlot$x,toPlot$youdan,type="l",col="purple",lwd=2,lty=3)
-  abline(v=maxYoudan,col="purple",lty=3,lwd=2)
-  
-  legend("bottom",c("TPR","1-FPR","Distance","Youdan"),col=c("blue","red","green","purple"),lty=1:2,lwd=2)
-  text(x=0,y=50, adj = c(-0.2,2),cex=1,col="black",paste("THRESHOLDS:\nEuclidean=",minEuclidean,"\nYoudan=",maxYoudan))
+  print(toPlot %>% # our dataset
+    group_by(variable) %>%  # group the data by variable
+    mutate(min = toPlot$x[which.min(value)]) %>% # get the min of each metric
+    mutate(max = toPlot$x[which.max(value)]) %>%  # get the max of each metric
+    ungroup %>% #ungroup the data
+    ggplot(aes(x, value, color = variable))+ # plot x on the x axis and % on the y axis, and give each variable a different colour
+    xlim(0, 1)+ # set limits on the x axis
+    geom_point(size = 2, alpha = 0.5)+ # set the point size to 5 and the transparancy of the fill colour to 0.5
+    geom_smooth()+ # draw a smooth line over our points
+    geom_vline(aes(xintercept = min), color="red")+ # draw a red vertical line at the minimum of each metric
+    geom_vline(aes(xintercept = max), color="green")+ # draw a green vertical line at the maximum of each metric
+    facet_wrap(~variable)+ # put the data for each variable in its own box
+    theme_bw()+ # the black and white theme
+    labs(title = name) # set the title of the plot
+  )
 }
 
 
@@ -197,10 +195,6 @@ main<-function(){
   
   #plot our data
   plotData(dataset, OUTPUT_FIELD)
-  
-  
-
-  
   
  
   
