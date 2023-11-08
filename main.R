@@ -187,14 +187,15 @@ main<-function(){
 
   
   # read the dataset
+  
   dataset<-readDataset(DATASET_FILENAME)
-  columnsToRemove <- list("MaritalStatus", "EmployeeNumber", "JobInvolvement", "PerformanceRating", "RelationshipSatisfaction", "YearsWithCurrManager")
+  columnsToRemove <- list("MaritalStatus", "EmployeeNumber", "JobInvolvement", "PerformanceRating", "RelationshipSatisfaction", "YearsWithCurrManager", "MonthlyIncome", "MonthlyRate")
   dataset <- cleanData(dataset, remove = columnsToRemove)
   #determine each field type
   field_types<-getFieldTypes(dataset)
   
   #plot our data
-  plotData(dataset, OUTPUT_FIELD)
+  plotData(dataset, OUTPUT_FIELD, field_types)
   
  
   

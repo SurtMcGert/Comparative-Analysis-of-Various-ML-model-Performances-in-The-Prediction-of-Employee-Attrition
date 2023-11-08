@@ -547,41 +547,43 @@ prettyDataset<-function(dataset,...){
   print(t)
 }
 
-# convert - OPTIONAL converts the column to categorical if needed
-plotData <- function(data, fieldNameOutput, convert=FALSE){
+
+# function to plot a dataset
+# inputs:
+# dataset - dataset to plot
+# fieldNameOutput - name of variable whos relation you want to see against other variables
+# fieldTypes - a list of the types of each field {ORDINAL, SYMBOLIC, DISCRETE}
+plotData <- function(data, fieldNameOutput, fieldTypes){
+  # for each variable in the data
   for(i in 1:ncol(data)){
+    # a scatter plot of the variable against the fieldNameOutput
     name <- names(data)[i]
     title <- paste(name, "vs")
     title <- paste(title, fieldNameOutput)
     print(title)
     print(data %>% 
       ggplot(aes(x = !!sym(name), y = !!sym(fieldNameOutput)))+
-        geom_point(size = 5, alpha = 0.1)+
+      geom_point(size = 5, alpha = 0.1)+
       theme_bw()+
       labs(title = title))
+  
+  # a density plot of the variable if it is continuous
+    if(fieldTypes[i] == TYPE_ORDINAL){
+      print(data %>% 
+              ggplot(aes(x = !!sym(name), color = name, fill = name))+
+              geom_density(alpha = 0.2)+
+              theme_bw()+
+              labs(title = name))
+    }
+    else{
+      # a histogram of the variable if it is symbolic or discrete
+      print(data %>% 
+              ggplot(aes(x = !!sym(name), color = name, fill = name))+
+              geom_bar()+
+              theme_bw()+
+              labs(title = name))
+    }
   }
-  # Print the distribution of the fields data as a bar graph
-  print(cat("Distribution of ", fieldNameOutput))
-  dataDistribution_BarPlot(data,fieldNameOutput,convert)
-}
-
-# function to print an the distribution of an attribute
-# inputs:
-# dataset - dataset
-# attribute name - name of attribute
-# convert - OPTIONAL converts the column to categorical if needed
-dataDistribution_BarPlot <- function(dataset, fieldNameOutput, convert = FALSE) {
-  if(convert == TRUE) {
-  # Categorizes the data, to note, it does not alphabetically order names
-    dataset[[fieldNameOutput]] <- as.factor(dataset[[fieldNameOutput]])
-  }
-  # Convert to dataframe
-  newdataset <- as.data.frame(dataset)
-  # Plot the distribution of fieldNameOutput
-  c <- ggplot(newdataset, aes(x = dataset[[fieldNameOutput]])) + geom_bar()
-  # Add a label to the x-axis
-  c <- c + xlab(fieldNameOutput)
-  print(c)
 }
 
 
