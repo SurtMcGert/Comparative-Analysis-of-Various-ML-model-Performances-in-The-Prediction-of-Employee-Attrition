@@ -561,3 +561,79 @@ plotData <- function(data, fieldNameOutput){
   }
 }
 
+
+# Plots a bar graph against attrition and a chosen field, also has the ability to use a discrete counting graph along with converting a field to categorical
+
+# inputs:
+# data - raw dataset, should not be a dataframe, can be literally the read in dataset
+# comparedField - string value, should be a column in the dataset
+# convert - default value is false, set to true if you want to convert the column into a categorical column
+# count - default value is false, set to true if you want to compare the count of each discrete column, for example: see how many counts are there for each group in a column
+
+# output:
+# Outputs a bar chart in the format requested in the optional parameters, prints a standard bar chart if count is false.
+
+# You will most likely need count = TRUE but thats on you
+
+plotAttritionAsBarGraphs <- function(data, comparedField, convert = FALSE, count = FALSE) {
+  # Input data set as its read in value, i.e no need to turn it into a data frame
+  # Compared field should be a string
+  
+  # Plan to call this function within another function, multiple smaller functions can be called within a single function to improve readability
+  
+  # Might need to convert the field first, for example worklifebalance
+  
+  # If you need to convert the comparedField to a categorical column, set convert to TRUE
+  
+  if (convert) {
+    print("Attempting to convert...")
+    # Converts to categorical, be careful as it doesnt handle specific ordering, just basic converting.
+    
+    # Note you need to write the syntax like this rather than above for it to work
+    data[[comparedField]] <- as.factor(data[[comparedField]])
+    
+    print("Converted input column to categorical.")
+  } 
+  
+  # Convert input data to a dataframe
+  
+  dataframe <- as.data.frame(data)
+  
+  # Creating the bar chart, geom bar arguments define how the bar chart looks
+  
+  if (count) {
+    # Counting enabled
+    
+ 
+    # REQUIRES dplyr library
+    
+    print("Counting Bar Chart")
+    
+    #print(colnames(dataframe))  #enable for debugging
+    
+    
+    # Counting and grouping with attrition and the compared field
+    result <- dataframe %>% group_by(Attrition, .data[[comparedField]]) %>% summarize(Count = n())
+    
+    #print(result)
+    
+    #barChartCount <- ggplot(result, aes(x = comparedField, y = Count)) + geom_bar(stat = "identity", aes(fill = Attrition), position = "dodge")
+    p <- ggplot(result, aes(x = result[[comparedField]], y = Count)) + geom_bar(stat = "identity", aes(fill = Attrition), position = "dodge") + labs(y = comparedField, x = "Attrition")
+    print(p)
+    
+  }
+  else {
+    # Counting disabled, shows a standard bar graph
+    print("Standard Bar Chart")
+    barChartStandard <- ggplot(dataframe, aes(x = Attrition, y = comparedField)) + geom_bar(stat = "identity", aes(fill = Attrition)) + labs(y = comparedField, x = "Attrition")
+    print(barChartStandard)
+  }
+  
+  
+  
+  
+   
+  
+  
+}
+
