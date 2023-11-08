@@ -125,8 +125,6 @@ getDiscreteOrOrdinal<-function(dataset,field_types,cutoff){
       histogramAnalysis<-hist(dataset[,field], breaks = 10, plot=FALSE)
       bins<-histogramAnalysis$counts/length(dataset[,field])*100  # Convert to %
 
-      graphTitle<-"AUTO:"
-
       #If the number of bins with less than 1% of the values is greater than the cutoff
       #then the field is deterimed to be a discrete value
 
@@ -134,12 +132,6 @@ getDiscreteOrOrdinal<-function(dataset,field_types,cutoff){
         field_types[field]<-TYPE_DISCRETE
       else
         field_types[field]<-TYPE_ORDINAL
-
-      #Type of field is the chart name
-      hist(dataset[,field], breaks = 10, plot=TRUE,
-           main=paste(graphTitle,field_types[field]),
-           xlab=names(dataset[field]),ylab="Number of Records",
-           yaxs="i",xaxs="i",border = NA)
 
     }
   }
@@ -547,17 +539,42 @@ prettyDataset<-function(dataset,...){
   print(t)
 }
 
-plotData <- function(data, fieldNameOutput){
+
+# function to plot a dataset
+# inputs:
+# dataset - dataset to plot
+# fieldNameOutput - name of variable whos relation you want to see against other variables
+# fieldTypes - a list of the types of each field {ORDINAL, SYMBOLIC, DISCRETE}
+plotData <- function(data, fieldNameOutput, fieldTypes){
+  # for each variable in the data
   for(i in 1:ncol(data)){
+    # a scatter plot of the variable against the fieldNameOutput
     name <- names(data)[i]
     title <- paste(name, "vs")
     title <- paste(title, fieldNameOutput)
     print(title)
     print(data %>% 
       ggplot(aes(x = !!sym(name), y = !!sym(fieldNameOutput)))+
-        geom_point(size = 5, alpha = 0.1)+
+      geom_point(size = 5, alpha = 0.1)+
       theme_bw()+
       labs(title = title))
+  
+  # a density plot of the variable if it is continuous
+    if(fieldTypes[i] == TYPE_ORDINAL){
+      print(data %>% 
+              ggplot(aes(x = !!sym(name), color = name, fill = name))+
+              geom_density(alpha = 0.2)+
+              theme_bw()+
+              labs(title = name))
+    }
+    else{
+      # a histogram of the variable if it is symbolic or discrete
+      print(data %>% 
+              ggplot(aes(x = !!sym(name), color = name, fill = name))+
+              geom_bar()+
+              theme_bw()+
+              labs(title = name))
+    }
   }
 }
 

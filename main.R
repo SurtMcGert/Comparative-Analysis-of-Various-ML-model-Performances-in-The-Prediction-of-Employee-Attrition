@@ -129,16 +129,35 @@ evaluate<-function(probs,testing_data,threshold) {
 # function to create a formula for column names and given output
 # inputs:
 # dataset - data frame - the dataset
-# fieldNameOutput - String - the name of the output field, effectivly the field the model is going to try and predict
+# fieldNameOutput - String - the name of the output field, effectively the field the model is going to try and predict
+# fields - list - and optional list of field names that you want to use to make up the forumal instead of all the fields
 # 
 # returns: an R forumlar object
-modelFormula<-function(dataset,fieldNameOutput){
+modelFormula<-function(dataset, fieldNameOutput, fields=list()){
   
-  inputs<-paste(names(dataset)[which(names(dataset)!=fieldNameOutput)],collapse = "+")
+  # if there is no list of fields
+  if(length(fields) == 0) {
+    # use all the variables to make the formula
+    inputs <- paste(names(dataset)[which(names(dataset)!=fieldNameOutput)],collapse = "+")
+  } else {
+    # use the specified list of fields to make the formula
+    # first check that all the listed fields are even in the dataset
+    for(i in 1:length(fields)){
+      print(fields[i])
+      if(fields[i] %in% names(dataset)){
+        # do nothing
+      }
+      else{
+        stop("THE SOME OR ALL OF THE LIST OF FIELDS ARE NOT IN THE DATASET")
+      }
+    }
+    inputs <- paste(fields, collapse = "+")
+  }
+  
   
   output<-paste(fieldNameOutput,"~")
   
-  formular=as.formula(paste(output,inputs))
+  formular = as.formula(paste(output,inputs))
   
   return(formular)
   
@@ -152,7 +171,6 @@ modelFormula<-function(dataset,fieldNameOutput){
 Model<-function(training_data,testing_data){
   # call the formula function
   formular<-modelFormula(dataset=training_data,fieldNameOutput=OUTPUT_FIELD)
-  
   
   # Placeholder - change in testing and final implementation
   predictionNames <- c("harryPredictions", "chrisPredictions", "annaPredictions", "melricPredictions", "zionPredictions")
@@ -187,14 +205,15 @@ main<-function(){
 
   
   # read the dataset
+  
   dataset<-readDataset(DATASET_FILENAME)
-  columnsToRemove <- list("MaritalStatus", "EmployeeNumber", "JobInvolvement", "PerformanceRating", "RelationshipSatisfaction", "YearsWithCurrManager")
+  columnsToRemove <- list("DailyRate", "MaritalStatus", "EmployeeNumber", "JobInvolvement", "PerformanceRating", "RelationshipSatisfaction", "YearsWithCurrManager", "MonthlyIncome", "MonthlyRate")
   dataset <- cleanData(dataset, remove = columnsToRemove)
   #determine each field type
   field_types<-getFieldTypes(dataset)
   
   #plot our data
-  plotData(dataset, OUTPUT_FIELD)
+  plotData(dataset, OUTPUT_FIELD, field_types)
   
  
   
@@ -210,7 +229,7 @@ main<-function(){
  # print(symbolic_fields)
   
   
-  results<-data.frame(field=names(dataset),initial=field_types,types1=field_types)
+  results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
   
   
@@ -226,7 +245,7 @@ main<-function(){
   # Process the catagorical (symbolic/discrete) fields using 1-hot-encoding
   catagoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
-  print(formattable::formattable(data.frame(fields=names(catagoricalReadyforML))))
+  #print(formattable::formattable(data.frame(fields=names(catagoricalReadyforML))))
   
   # number of non-numeric fields before transformation
   #nonNumericbefore<-length(which(field_types!=TYPE_ORDINAL))
