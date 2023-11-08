@@ -125,8 +125,6 @@ getDiscreteOrOrdinal<-function(dataset,field_types,cutoff){
       histogramAnalysis<-hist(dataset[,field], breaks = 10, plot=FALSE)
       bins<-histogramAnalysis$counts/length(dataset[,field])*100  # Convert to %
 
-      graphTitle<-"AUTO:"
-
       #If the number of bins with less than 1% of the values is greater than the cutoff
       #then the field is deterimed to be a discrete value
 
@@ -134,12 +132,6 @@ getDiscreteOrOrdinal<-function(dataset,field_types,cutoff){
         field_types[field]<-TYPE_DISCRETE
       else
         field_types[field]<-TYPE_ORDINAL
-
-      #Type of field is the chart name
-      hist(dataset[,field], breaks = 10, plot=TRUE,
-           main=paste(graphTitle,field_types[field]),
-           xlab=names(dataset[field]),ylab="Number of Records",
-           yaxs="i",xaxs="i",border = NA)
 
     }
   }
