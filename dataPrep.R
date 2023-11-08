@@ -547,7 +547,8 @@ prettyDataset<-function(dataset,...){
   print(t)
 }
 
-plotData <- function(data, fieldNameOutput){
+# convert - OPTIONAL converts the column to categorical if needed
+plotData <- function(data, fieldNameOutput, convert=FALSE){
   for(i in 1:ncol(data)){
     name <- names(data)[i]
     title <- paste(name, "vs")
@@ -559,16 +560,26 @@ plotData <- function(data, fieldNameOutput){
       theme_bw()+
       labs(title = title))
   }
+  # Print the distribution of the fields data as a bar graph
+  print(cat("Distribution of ", fieldNameOutput))
+  dataDistribution_BarPlot(data,fieldNameOutput,convert)
 }
 
 # function to print an the distribution of an attribute
 # inputs:
 # dataset - dataset
 # attribute name - name of attribute
-dataDistribution_BarPlot <- function(dataset, fieldNameOutput) {
-  dataset[[fieldNameOutput]] <- as.factor(dataset[[fieldNameOutput]])
+# convert - OPTIONAL converts the column to categorical if needed
+dataDistribution_BarPlot <- function(dataset, fieldNameOutput, convert = FALSE) {
+  if(convert == TRUE) {
+  # Categorizes the data, to note, it does not alphabetically order names
+    dataset[[fieldNameOutput]] <- as.factor(dataset[[fieldNameOutput]])
+  }
+  # Convert to dataframe
   newdataset <- as.data.frame(dataset)
+  # Plot the distribution of fieldNameOutput
   c <- ggplot(newdataset, aes(x = dataset[[fieldNameOutput]])) + geom_bar()
+  # Add a label to the x-axis
   c <- c + xlab(fieldNameOutput)
   print(c)
 }
