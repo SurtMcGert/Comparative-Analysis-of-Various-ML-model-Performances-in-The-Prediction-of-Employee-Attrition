@@ -205,7 +205,6 @@ main<-function(){
 
   
   # read the dataset
-  
   dataset<-readDataset(DATASET_FILENAME)
   columnsToRemove <- list("DailyRate", "MaritalStatus", "EmployeeNumber", "JobInvolvement", "PerformanceRating", "RelationshipSatisfaction", "YearsWithCurrManager", "MonthlyIncome", "MonthlyRate")
   dataset <- cleanData(dataset, remove = columnsToRemove)
