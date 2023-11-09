@@ -323,29 +323,28 @@ removeRedundantFields<-function(dataset,cutoff){
 # 
 # returns: a data frame of ordinals with any outlier values optionally replaced with the median of the field
 removeOutliers<-function(ordinals,confidence){
-
+  library(car)
   #For every ordinal field in our dataset
   for(field in 1:(ncol(ordinals))){
-
+    # Sort the data in decreasing order
     sorted<-unique(sort(ordinals[,field],decreasing=TRUE))
     outliers<-which(outliers::scores(sorted,type="chisq",prob=abs(confidence)))
     plotOutliers(sorted,outliers,colnames(ordinals)[field])
-
     #If found records with outlier values
     if ((length(outliers>0))){
-
       #070819NRT If confidence is positive then replace values with their means, otherwise do nothing
       if (confidence>0){
-        outliersGone<-rm.outlier(ordinals[,field],fill=TRUE)
-        sorted<-unique(sort(outliersGone,decreasing=TRUE))
-        #NplotOutliers(sorted,vector(),colnames(ordinals)[field])
-        ordinals[,field]<-outliersGone #Put in the values with the outliers replaced by means
+        # create a new non_outliers vector
+        non_outliers <- sorted[-outliers]
+        mean_value <- mean(non_outliers, na.rm = TRUE)
+        # uses ifelse function to replace outliers in a specific column (field) or the ordinals dataframe with the mean
+        # if(ordinals[, field] %in% non_outliers) leave unchanged, else, its an outlier so replace with mean_value
+        ordinals[, field] <- ifelse(ordinals[, field] %in% non_outliers, ordinals[, field], mean_value)
         print(paste("Outlier field=",names(ordinals)[field],"Records=",length(outliers),"Replaced with MEAN"))
       } else {
         print(paste("Outlier field=",names(ordinals)[field],"Records=",length(outliers)))
       }
     }
-
   }
   return(ordinals)
 }
@@ -593,4 +592,11 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
       }
     }
   }
+}
+# function to get numeric dataframe from original dataframe
+# inputs:
+# dataframe
+getNumericDataframe <- function(dataframe) {
+  numeric_df <- dplyr::select(dataframe, where(is.numeric))
+  return(numeric_df)
 }

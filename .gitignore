@@ -2,5 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+tests.R
 UCI-G.csv
 /dataset

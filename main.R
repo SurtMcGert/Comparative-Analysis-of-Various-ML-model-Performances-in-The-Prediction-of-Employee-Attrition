@@ -43,7 +43,8 @@ LIBRARIES<-c("outliers",
                "stats",
                "PerformanceAnalytics",
                "tidyverse",
-                "reshape2")
+                "reshape2",
+             "car")
 
 
 
@@ -203,7 +204,7 @@ main<-function(){
   
   print(paste("using dataset: ", DATASET_FILENAME))
 
-  
+
   # read the dataset
   dataset<-readDataset(DATASET_FILENAME)
   columnsToRemove <- list("DailyRate", "MaritalStatus", "EmployeeNumber", "JobInvolvement", "PerformanceRating", "RelationshipSatisfaction", "YearsWithCurrManager", "MonthlyIncome", "MonthlyRate")
@@ -214,8 +215,9 @@ main<-function(){
   #plot our data
   plotData(dataset, OUTPUT_FIELD, field_types)
   
- 
-  
+  print(prettyDataset(dataset))
+  View(dataset)
+  print(plotData(dataset,"NumCompaniesWorked","DISCRETE"))
   #numeric_fields<-names(dataset)[field_types=="NUMERIC"]
   #symbolic_fields<-names(dataset)[field_types=="SYMBOLIC"]
   
