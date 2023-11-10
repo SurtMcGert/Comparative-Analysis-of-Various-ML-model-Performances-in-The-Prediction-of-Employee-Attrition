@@ -231,7 +231,7 @@ cleanData<-function(dataset, remove = list()){
 
 
 
-# function to plot a scatter plot of vield values and colour the outliers in red
+# function to plot a scatter plot of field values and colour the outliers in red
 # inputs:
 # sorted - vector - points to plot as literal values
 # outliers - vector - list of above points that are considered outliers
@@ -595,7 +595,7 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
 }
 # function to get numeric dataframe from original dataframe
 # inputs:
-# dataframe
+# dataframe - data frame - the data to get the numerical fields from
 getNumericDataframe <- function(dataframe) {
   numeric_df <- dplyr::select(dataframe, where(is.numeric))
   return(numeric_df)

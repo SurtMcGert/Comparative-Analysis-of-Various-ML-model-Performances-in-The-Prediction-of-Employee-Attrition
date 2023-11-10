@@ -214,10 +214,7 @@ main<-function(){
   
   #plot our data
   plotData(dataset, OUTPUT_FIELD, field_types)
-  
-  print(prettyDataset(dataset))
-  View(dataset)
-  print(plotData(dataset,"NumCompaniesWorked","DISCRETE"))
+  prettyDataset(dataset)
   #numeric_fields<-names(dataset)[field_types=="NUMERIC"]
   #symbolic_fields<-names(dataset)[field_types=="SYMBOLIC"]
   
