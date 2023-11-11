@@ -6,22 +6,42 @@ rm(list=ls())
 # ************************************************
 # Global Environment variables
 
-DATASET_FILENAME  <- "dataset/HR_Analytics.csv"          # Name of input dataset file
-OUTPUT_FIELD      <- "Attrition"             # Field name of the output class to predict
+DATASET_FILENAME        <- "dataset/HR_Analytics.csv"          # Name of input dataset file
+OUTPUT_FIELD            <- "Attrition"             # Field name of the output class to predict
+FIELDS_FOR_REMOVAL      <- list("DailyRate", 
+                                "MaritalStatus", 
+                                "EmployeeNumber", 
+                                "JobInvolvement", 
+                                "PerformanceRating", 
+                                "RelationshipSatisfaction", 
+                                "YearsWithCurrManager", 
+                                "MonthlyIncome", 
+                                "MonthlyRate", 
+                                "PercentSalaryHike", 
+                                "StandardHours") # the list of fields that need manually removing
+ORDERED_FIELDS          <- list("Education", 
+                                "EnvironmentSatisfaction", 
+                                "JobLevel", 
+                                "JobSatisfaction", 
+                                "WorkLifeBalance", 
+                                "BusinessTravel") # the list of fields that need marking as ordered symbolic
+CONTINUOUS_FIELDS       <- list("XUFEFFAge", 
+                                "DistanceFromHome") # the list of fields that should be overriden as continuous
 
-HOLDOUT           <- 70                   # % split to create TRAIN dataset
+HOLDOUT                 <- 70                   # % split to create TRAIN dataset
 
-SCALE_DATASET     <- TRUE                 # Set to true to scale dataset before ML stage
-OUTLIER_CONF      <- 0.95                 # Confidence p-value for outlier detection
+SCALE_DATASET           <- TRUE                 # Set to true to scale dataset before ML stage
+OUTLIER_CONF            <- 0.95                 # Confidence p-value for outlier detection
 
-TYPE_DISCRETE     <- "DISCRETE"           # field is discrete (numeric)
-TYPE_ORDINAL      <- "ORDINAL"            # field is continuous numeric
-TYPE_SYMBOLIC     <- "SYMBOLIC"           # field is a string
-TYPE_NUMERIC      <- "NUMERIC"            # field is initially a numeric
-TYPE_IGNORE       <- "IGNORE"             # field is not encoded
+TYPE_DISCRETE           <- "DISCRETE"           # field is discrete (numeric)
+TYPE_CONTINUOUS         <- "CONTINUOUS"         # field is continuous (numeric)
+TYPE_SYMBOLIC           <- "SYMBOLIC"           # field is a string
+TYPE_ORDERED_CATEGORICAL<- "ORDERED_CATEGORICAL"# field is a string where order is of some importance
+TYPE_NUMERIC            <- "NUMERIC"            # field is initially a numeric
+TYPE_IGNORE             <- "IGNORE"             # field is not encoded
 
-DISCRETE_BINS     <- 6                    # Number of empty bins to determine discrete
-MAX_LITERALS      <- 55                   # Maximum number of 1-hot encoding new fields
+DISCRETE_BINS           <- 1                    # Number of empty bins to determine discrete
+MAX_LITERALS            <- 55                   # Maximum number of 1-hot encoding new fields
 
 # ************************************************
 # Define and then load the libraries used in this project
@@ -207,57 +227,42 @@ main<-function(){
 
   # read the dataset
   dataset<-readDataset(DATASET_FILENAME)
-  columnsToRemove <- list("DailyRate", "MaritalStatus", "EmployeeNumber", "JobInvolvement", "PerformanceRating", "RelationshipSatisfaction", "YearsWithCurrManager", "MonthlyIncome", "MonthlyRate")
-  dataset <- cleanData(dataset, remove = columnsToRemove)
+  dataset <- cleanData(dataset, remove = FIELDS_FOR_REMOVAL)
   #determine each field type
-  field_types<-getFieldTypes(dataset)
+  field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
+  
   
   #plot our data
   plotData(dataset, OUTPUT_FIELD, field_types)
   prettyDataset(dataset)
-  #numeric_fields<-names(dataset)[field_types=="NUMERIC"]
-  #symbolic_fields<-names(dataset)[field_types=="SYMBOLIC"]
-  
- # number_of_numeric<-length(numeric_fields)
- # number_of_symbolic<-length(symbolic_fields)
-  
-  #print(paste("NUMERIC FIELDS=",number_of_numeric))
- # print(numeric_fields)
- # print(paste("SYMBOLIC FIELDS=",number_of_symbolic))
- # print(symbolic_fields)
   
   
   results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
   
-  
-  ordinals<-dataset[,which(field_types==TYPE_ORDINAL)]
-  ordinals<-removeOutliers(ordinals=ordinals,confidence=OUTLIER_CONF)
+  print("encoding continuous data")
+  continuous<-as.data.frame(dataset[which(field_types==TYPE_CONTINUOUS)])
+  continuous<-removeOutliers(continuous=continuous,confidence=OUTLIER_CONF)
   
   # z-scale
-  zscaled<-as.data.frame(scale(ordinals,center=TRUE, scale=TRUE))
+  zscaled<-as.data.frame(scale(continuous,center=TRUE, scale=TRUE))
   
   # n the chosen classifier, the input values need to be scaled to [0.0,1.0]
-  ordinalReadyforML<-rescaleDataFrame(zscaled)
+  continuousReadyforML<-rescaleDataFrame(zscaled)
   
   # Process the catagorical (symbolic/discrete) fields using 1-hot-encoding
+  print("encoding non ordered categorical data")
   catagoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
-  #print(formattable::formattable(data.frame(fields=names(catagoricalReadyforML))))
-  
-  # number of non-numeric fields before transformation
-  #nonNumericbefore<-length(which(field_types!=TYPE_ORDINAL))
-  
-  #nonNumerictranformed<-ncol(catagoricalReadyforML)
-  #print(paste("Symbolic fields. Before encoding=",nonNumericbefore,"After",nonNumerictranformed))
-  
-  
   # Combine the two sets of data that are read for ML
-  combinedML<-cbind(ordinalReadyforML,catagoricalReadyforML)
+  combinedML<-cbind(continuousReadyforML,catagoricalReadyforML)
   
-  # The dataset for ML information
-  # print(paste("Fields=",ncol(combinedML)))
-  # combinedML<-removeRedundantFields(dataset=combinedML,cutoff=OUTLIER_CONF)
+  # process the ordered categorical fields
+  print("encoding ordered categorical data")
+  orderedCategoricalReadyforML<-encodeOrderedCategorical(dataset=dataset, field_types=field_types)
+  
+  # combine the ordered categorical fields that are ready for ML
+  combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
   
   #The dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
@@ -273,8 +278,6 @@ main<-function(){
   training_records<-round(nrow(combinedML)*(HOLDOUT/100))
   training_data <- combinedML[1:training_records,]
   testing_data = combinedML[-(1:training_records),]
-  
-  
   
   Model(training_data = training_data, testing_data = testing_data)
   

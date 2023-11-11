@@ -80,9 +80,12 @@ setInitialFieldType<-function(name,type){
 # function to get if each field is either NUMERIC or SYMBOLIC
 # input:
 # dataset - data frame - the data to get the field types of
+# orderedFields - list - an optional list of field names whos values are symbolic and ordered
+# continuousFields - list - an optional list of fields that should be overriden and set to continuous
+# discreteFields - list - an optional list of fields that should be overriden and set to discrete
 # 
-# returns: vector of types {NUMERIC, SYBOLIC}
-getFieldTypes<-function(dataset){
+# returns: vector of types {DISCRETE, CONTINUOUS, SYBOLIC, ORDERED_SYMBOLIC}
+getFieldTypes<-function(dataset, continuousFields=list(), orderedFields=list(), discreteFields=list()){
 
   field_types<-vector()
   for(field in 1:(ncol(dataset))){
@@ -93,28 +96,33 @@ getFieldTypes<-function(dataset){
       next
     }
 
-    if (is.numeric(dataset[,field])) {
+    if (is.numeric(dataset[,field]) && !(names(dataset)[field] %in% orderedFields)) {
       field_types[field]<-TYPE_NUMERIC
     }
-    else {
+    else if(names(dataset)[field] %in% orderedFields){
+      field_types[field]<-TYPE_ORDERED_CATEGORICAL
+    }
+    else{
       field_types[field]<-TYPE_SYMBOLIC
     }
   }
-  field_types <- getDiscreteOrOrdinal(dataset=dataset,
+  field_types <- getDiscreteOrContinuous(dataset=dataset,
                                       field_types=field_types,
-                                      cutoff=DISCRETE_BINS)
+                                      cutoff=DISCRETE_BINS,
+                                      continuousFields=continuousFields,
+                                      discreteFields=discreteFields)
   return(field_types)
 }
 
 
-# function to test if a NUMERIC field is DISCRETE or ORDINAL
+# function to test if a NUMERIC field is DISCRETE or CONTINUOUS
 # inputs:
 # dataset - data frame - the dataset to test
 # field_types - vector strings - the types of each field, {NUMERIC, SYMBOLIC}
 # cutoff - int - the number of empty bins needed to determine discrete (1 - 10)
 # 
-# returns: a vector of strings updated wit types per field {DISCRETE, ORDINAL}
-getDiscreteOrOrdinal<-function(dataset,field_types,cutoff){
+# returns: a vector of strings updated wit types per field {DISCRETE, CONTINUOUS}
+getDiscreteOrContinuous<-function(dataset, field_types, cutoff, continuousFields=list(), discreteFields=list()){
 
   #For every field in our dataset
   for(field in 1:(ncol(dataset))){
@@ -122,17 +130,39 @@ getDiscreteOrOrdinal<-function(dataset,field_types,cutoff){
     #Only for fields that are all numeric
     if (field_types[field]==TYPE_NUMERIC) {
 
-      histogramAnalysis<-hist(dataset[,field], breaks = 10, plot=FALSE)
+      histogramAnalysis<-hist(dataset[,field], main = names(dataset)[field], breaks = 10, plot=FALSE)
       bins<-histogramAnalysis$counts/length(dataset[,field])*100  # Convert to %
+      mean <- mean(bins)
 
       #If the number of bins with less than 1% of the values is greater than the cutoff
       #then the field is deterimed to be a discrete value
 
-      if (length(which(bins<1.0))>cutoff)
-        field_types[field]<-TYPE_DISCRETE
-      else
-        field_types[field]<-TYPE_ORDINAL
+      # get the percentage of data that is unique
+      percentageUnique = (1 - (nrow(dataset) / length(unique(dataset[[field]]))) * 100)
+      numOfvalues = nrow(dataset)
+      numOfUniqueValues = length(unique(dataset[[field]]))
+      percentageUnique = ((numOfUniqueValues / numOfvalues) * 100)
 
+      # if the data has any histogram bins with 0 counts, or the data is less than 5% unique, then it is discrete
+      if((length(which(bins<=0)) > 0) | (percentageUnique < 3)){
+        field_types[field]<-TYPE_DISCRETE
+      }
+      else{
+        field_types[field]<-TYPE_CONTINUOUS
+      }
+
+    #   if (((length(which(bins>=40))>=cutoff) && (length(which(bins<=1.5))>=cutoff)) || (length(which(bins<=0)) > 0))
+    #     field_types[field]<-TYPE_DISCRETE
+    #   else
+    #     field_types[field]<-TYPE_CONTINUOUS
+
+    }
+    # override
+    if(names(dataset)[field] %in% continuousFields){
+      field_types[field] = TYPE_CONTINUOUS
+    }
+    else if(names(dataset)[field] %in% discreteFields){
+      field_types[field]<-TYPE_DISCRETE
     }
   }
   return(field_types)
@@ -142,7 +172,7 @@ getDiscreteOrOrdinal<-function(dataset,field_types,cutoff){
 # function to transform SYMBOLIC or DISCRETE fields using 1-hot-encoding
 # inputs:
 # dataset - data frame - the dataset whos fields need encoding
-# field_types - vector string - types per field {ORDINAL, SYMBOLIC, DISCRETE}
+# field_types - vector string - types per field {CONTINUOUS, SYMBOLIC, DISCRETE, ORDERED_CATEGORICAL}
 # 
 # returns: data frame - transofmed dataset
 oneHotEncode<-function(dataset,field_types){
@@ -186,6 +216,25 @@ oneHotEncode<-function(dataset,field_types){
   }
   return (catagorical)
 
+}
+
+# function to encode ordered categorical data
+# inputs:
+# dataset - data frame - the dataset to encode the ordered categorical data from
+# field_types - list - the list of field types for the dataset {CONTINUOUS, SYMBOLIC, DISCRETE, ORDERED_CATEGORICAL}
+# 
+# returns: data frame of all the encoded ordered categorical feidls
+encodeOrderedCategorical<-function(dataset, field_types){
+  ordered_categorical <- dataset[which(field_types==TYPE_ORDERED_CATEGORICAL)]
+  ordered_categorical[] <- (lapply(ordered_categorical, factor))
+  # for each field
+  for (field in 1:(ncol(ordered_categorical))){
+      # get the number of unique values for this field
+      numOfUniqueValues = length(unique(ordered_categorical[[field]]))
+      ordered_categorical[[field]] = as.integer((ordered_categorical[[field]]))
+      ordered_categorical[[field]] = ordered_categorical[[field]] / numOfUniqueValues
+  }
+  return (ordered_categorical)
 }
 
 
@@ -322,14 +371,14 @@ removeRedundantFields<-function(dataset,cutoff){
 # confidence - double - confidence above which is determined as an outlier, set negative if you dont want to replace outliers
 # 
 # returns: a data frame of ordinals with any outlier values optionally replaced with the median of the field
-removeOutliers<-function(ordinals,confidence){
+removeOutliers<-function(continuous,confidence){
   library(car)
   #For every ordinal field in our dataset
-  for(field in 1:(ncol(ordinals))){
+  for(field in 1:(ncol(continuous))){
     # Sort the data in decreasing order
-    sorted<-unique(sort(ordinals[,field],decreasing=TRUE))
+    sorted<-unique(sort(continuous[,field],decreasing=TRUE))
     outliers<-which(outliers::scores(sorted,type="chisq",prob=abs(confidence)))
-    plotOutliers(sorted,outliers,colnames(ordinals)[field])
+    plotOutliers(sorted,outliers,colnames(continuous)[field])
     #If found records with outlier values
     if ((length(outliers>0))){
       #070819NRT If confidence is positive then replace values with their means, otherwise do nothing
@@ -339,14 +388,14 @@ removeOutliers<-function(ordinals,confidence){
         mean_value <- mean(non_outliers, na.rm = TRUE)
         # uses ifelse function to replace outliers in a specific column (field) or the ordinals dataframe with the mean
         # if(ordinals[, field] %in% non_outliers) leave unchanged, else, its an outlier so replace with mean_value
-        ordinals[, field] <- ifelse(ordinals[, field] %in% non_outliers, ordinals[, field], mean_value)
-        print(paste("Outlier field=",names(ordinals)[field],"Records=",length(outliers),"Replaced with MEAN"))
+        continuous[, field] <- ifelse(continuous[, field] %in% non_outliers, continuous[, field], mean_value)
+        print(paste("Outlier field=",names(continuous)[field],"Records=",length(outliers),"Replaced with MEAN"))
       } else {
-        print(paste("Outlier field=",names(ordinals)[field],"Records=",length(outliers)))
+        print(paste("Outlier field=",names(continuous)[field],"Records=",length(outliers)))
       }
     }
   }
-  return(ordinals)
+  return(continuous)
 }
 
 
@@ -543,7 +592,7 @@ prettyDataset<-function(dataset,...){
 # inputs:
 # dataset - dataset to plot
 # fieldNameOutput - name of variable whos relation you want to see against other variables
-# fieldTypes - a list of the types of each field {ORDINAL, SYMBOLIC, DISCRETE}
+# fieldTypes - a list of the types of each field {CONTINUOUS, SYMBOLIC, DISCRETE}
 plotData <- function(data, fieldNameOutput, fieldTypes){
   # for each variable in the data
   for(i in 1:ncol(data)){
@@ -575,7 +624,7 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
       
       
       # a density plot of the variable if it is continuous
-      if(fieldTypes[i] == TYPE_ORDINAL){
+      if(fieldTypes[i] == TYPE_CONTINUOUS){
         print(data %>% 
                 ggplot(aes(x = !!sym(name), color = name, fill = name))+
                 geom_density(alpha = 0.2)+
