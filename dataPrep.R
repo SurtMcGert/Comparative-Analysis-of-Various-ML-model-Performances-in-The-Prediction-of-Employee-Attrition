@@ -269,11 +269,24 @@ cleanData<-function(dataset, remove = list()){
     }
   }
   
-  
-  
-  
+
   #remove columns
   cleanedData <- dataset[,!(names(dataset) %in% markedColumns)]
+  
+  #identify numeric columns for removeRedundantFields
+  numericColumns <- sapply(cleanedData, is.numeric)
+
+  #apply removeRedundantFields only to numeric columns
+  if (any(numericColumns)) {
+    cleanedData[, numericColumns] <- removeRedundantFields(cleanedData[, numericColumns], 0.95)
+    print("removed redundant numeric fields")
+  } else {
+    print("no numeric columns for removeRedundantFields")
+  }
+  
+  
+  
+  print("removed redundant fields")
   print("cleaned data")
   return (cleanedData)
 }
