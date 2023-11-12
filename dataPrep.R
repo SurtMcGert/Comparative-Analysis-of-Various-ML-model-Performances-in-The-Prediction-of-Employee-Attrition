@@ -177,7 +177,7 @@ getDiscreteOrContinuous<-function(dataset, field_types, cutoff, continuousFields
 # returns: data frame - transofmed dataset
 oneHotEncode<-function(dataset,field_types){
 
-  catagorical<-data.frame()
+  categorical<-data.frame()
 
   categorical_fields<-names(dataset)[which(field_types==TYPE_SYMBOLIC | field_types==TYPE_DISCRETE)]
 
@@ -211,10 +211,10 @@ oneHotEncode<-function(dataset,field_types){
       names(xx)<-field  # Field name without the value appended
     }
 
-  catagorical<-as.data.frame(append(catagorical,xx))
+  categorical<-as.data.frame(append(categorical,xx))
 
   }
-  return (catagorical)
+  return (categorical)
 
 }
 
@@ -543,7 +543,7 @@ prettyDataset<-function(dataset,...){
   params <- list(...)
 
   tidyTable<-data.frame(Field=names(dataset),
-                        Catagorical=FALSE,
+                        Categorical=FALSE,
                         Symbols=0,
                         Name=0,
                         Min=0.0,
@@ -558,9 +558,9 @@ prettyDataset<-function(dataset,...){
 
   for (i in 1:ncol(dataset)){
     isFieldAfactor<-!is.numeric(dataset[,i])
-    tidyTable$Catagorical[i]<-isFieldAfactor
+    tidyTable$Categorical[i]<-isFieldAfactor
     if (isFieldAfactor){
-      tidyTable$Symbols[i]<-length(unique(dataset[,i]))  #Number of symbols in catagorical
+      tidyTable$Symbols[i]<-length(unique(dataset[,i]))  #Number of symbols in categorical
       #Gets the count of each unique symbol
       symbolTable<-sapply(unique(dataset[,i]),function(x) length(which(dataset[,i]==x)))
       majoritySymbolPC<-round((sort(symbolTable,decreasing = TRUE)[1]/nrow(dataset))*100,digits=0)
@@ -575,14 +575,14 @@ prettyDataset<-function(dataset,...){
   }
 
   #Sort table so that all numerics are first
-  t<-formattable::formattable(tidyTable[order(tidyTable$Catagorical),],
-                              list(Catagorical = formatter("span",style = x ~ style(color = ifelse(x,"green", "red")),
+  t<-formattable::formattable(tidyTable[order(tidyTable$Categorical),],
+                              list(Categorical = formatter("span",style = x ~ style(color = ifelse(x,"green", "red")),
                                                            x ~ icontext(ifelse(x, "ok", "remove"), ifelse(x, "Yes", "No"))),
                                    Symbols = formatter("span",style = x ~ style(color = "black"),x ~ ifelse(x==0,"-",sprintf("%d", x))),
-                                   Min = formatter("span",style = x ~ style(color = "black"), ~ ifelse(Catagorical,"-",format(Min, nsmall=2, big.mark=","))),
-                                   Mean = formatter("span",style = x ~ style(color = "black"),~ ifelse(Catagorical,"-",format(Mean, nsmall=2, big.mark=","))),
-                                   Max = formatter("span",style = x ~ style(color = "black"), ~ ifelse(Catagorical,"-",format(Max, nsmall=2, big.mark=","))),
-                                   Skew = formatter("span",style = x ~ style(color = "black"),~ ifelse(Catagorical,"-",sprintf("%.2f", Skew)))
+                                   Min = formatter("span",style = x ~ style(color = "black"), ~ ifelse(Categorical,"-",format(Min, nsmall=2, big.mark=","))),
+                                   Mean = formatter("span",style = x ~ style(color = "black"),~ ifelse(Categorical,"-",format(Mean, nsmall=2, big.mark=","))),
+                                   Max = formatter("span",style = x ~ style(color = "black"), ~ ifelse(Categorical,"-",format(Max, nsmall=2, big.mark=","))),
+                                   Skew = formatter("span",style = x ~ style(color = "black"),~ ifelse(Categorical,"-",sprintf("%.2f", Skew)))
                               ))
   print(t)
 }

@@ -250,12 +250,12 @@ main<-function(){
   # n the chosen classifier, the input values need to be scaled to [0.0,1.0]
   continuousReadyforML<-rescaleDataFrame(zscaled)
   
-  # Process the catagorical (symbolic/discrete) fields using 1-hot-encoding
+  # Process the categorical (symbolic/discrete) fields using 1-hot-encoding
   print("encoding non ordered categorical data")
-  catagoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
+  categoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
   # Combine the two sets of data that are read for ML
-  combinedML<-cbind(continuousReadyforML,catagoricalReadyforML)
+  combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
   
   # process the ordered categorical fields
   print("encoding ordered categorical data")
