@@ -53,7 +53,7 @@ removePunctuation<-function(input){
 readDataset<-function(csvFilename){
   
   # read the dataset
-  dataset<-read.csv(csvFilename,encoding="UTF-8",stringsAsFactors = FALSE)
+  dataset<-read.csv(csvFilename,fileEncoding="UTF-8-BOM",stringsAsFactors = FALSE)
   
   # read the names of all the variables in the dataset and remove any punctuation
   names(dataset)<-removePunctuation(names(dataset))
