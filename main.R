@@ -230,7 +230,7 @@ main<-function(){
   dataset <- cleanData(dataset, remove = FIELDS_FOR_REMOVAL)
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
-  
+  print(field_types)
   
   #plot our data
   plotData(dataset, OUTPUT_FIELD, field_types)
@@ -239,6 +239,8 @@ main<-function(){
   
   results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
+  print("Results")
+  print(results)
   
   print("encoding continuous data")
   continuous<-as.data.frame(dataset[which(field_types==TYPE_CONTINUOUS)])
