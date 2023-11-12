@@ -25,7 +25,7 @@ ORDERED_FIELDS          <- list("Education",
                                 "JobSatisfaction", 
                                 "WorkLifeBalance", 
                                 "BusinessTravel") # the list of fields that need marking as ordered symbolic
-CONTINUOUS_FIELDS       <- list("XUFEFFAge", 
+CONTINUOUS_FIELDS       <- list("Age", 
                                 "DistanceFromHome") # the list of fields that should be overriden as continuous
 
 HOLDOUT                 <- 70                   # % split to create TRAIN dataset
