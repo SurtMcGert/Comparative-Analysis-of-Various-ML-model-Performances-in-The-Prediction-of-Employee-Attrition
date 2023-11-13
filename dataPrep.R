@@ -161,7 +161,7 @@ getDiscreteOrContinuous<-function(dataset, field_types, cutoff, continuousFields
     }
     # override
     if(names(dataset)[field] %in% continuousFields){
-      field_types[field] = TYPE_CONTINUOUS
+      field_types[field] <- TYPE_CONTINUOUS
     }
     else if(names(dataset)[field] %in% discreteFields){
       field_types[field]<-TYPE_DISCRETE
