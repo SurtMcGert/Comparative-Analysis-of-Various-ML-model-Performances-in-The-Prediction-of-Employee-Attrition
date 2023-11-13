@@ -224,10 +224,22 @@ main<-function(){
   
   print(paste("using dataset: ", DATASET_FILENAME))
 
-
   # read the dataset
   dataset<-readDataset(DATASET_FILENAME)
+  
+  # # make it a dataframe
+  # datafram
+  # 
+  # # combine fields before removing any
+  # divide <- function(colName1,colName2,dataframe) {
+  #   results <- colName1/colName2
+  #   return(results)
+  # }
+  # dataframe <- combineFields("YearsWithCurrManager", "YearsSinceLastPromotion", dataframe, add, "Test")
+  # 
+  # clean data
   dataset <- cleanData(dataset, remove = FIELDS_FOR_REMOVAL)
+  
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
   print(field_types)
