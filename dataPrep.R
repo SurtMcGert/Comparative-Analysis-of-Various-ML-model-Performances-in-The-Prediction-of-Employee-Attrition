@@ -662,3 +662,65 @@ getNumericDataframe <- function(dataframe) {
   numeric_df <- dplyr::select(dataframe, where(is.numeric))
   return(numeric_df)
 }
+
+
+
+# function to derive a new column by taking two existing columns and applying a single operator to it
+# Important note, this function uses parse so the inputs need to be sanitised!
+
+# Inputs:
+# dataframe - the original dataframe which contains the columns you want to derive from
+# column1 - the first column you want to derive from
+# column2 - the second column you want to derive from
+# name - The name of new derived field
+# operator - +, -, *, /  - Applies the function in the format eg. column1 + column2
+
+# Output:
+# Returns the given dataframe with the new column added to it
+DerivationSingleOperator <- function(dataframe, column1, column2, name, operator) {
+  
+  # Operator sanitisation
+  if (!(operator %in% c("+", "-", "*", "/"))) {
+    print("Invalid Operator!")
+    # Exit from function early
+    return()
+  }
+  
+  # getting the column data
+  col1 <- dataframe[[column1]]
+  col2 <- dataframe[[column2]]
+
+  # Creating an empty dataframe  
+  derivedDF <- data.frame()
+  
+  # Iterate through each row in both columns
+  for (i in seq_len(nrow(dataframe))) {
+    
+    #print(col1[[i]])
+    # Creates an expression in the format a+b
+    expression <- paste(col1[[i]], operator, col2[[i]], sep = "")
+
+    #print(expression)
+    
+    # Performs the expression using the data and stores into value, remember to be careful using parse 
+    value <- eval(parse(text = expression))
+    
+    # Handles when doing divide by 0, resets to 0
+    if (is.infinite(value)) {
+      value <- 0
+    }
+
+    #print(value)
+    
+    # Adds the result of the expression to a new dataframe
+    derivedDF <- rbind(derivedDF, value)
+
+  }
+  
+  #print(derivedDF)
+  
+  # Merge the dataframe with the original dataset
+  dataframe[name] <- derivedDF
+  
+  return(dataframe)
+}
