@@ -9,7 +9,7 @@
 
 # Pre-Processing a Dataset functions
 # This will store $name=field name, $type=field type
-manualTypes <- data.frame()
+# manualTypes <- data.frame()
 
 # function to scale a vector between 0 and 1
 # input:
@@ -65,16 +65,16 @@ readDataset<-function(csvFilename){
   return(dataset)
 }
 
-
+# Redundant
 # function to set each field for NUMERIC or SYNBOLIC
 # inputs:
 # name - String - name of the field to manually set
 # type - String - the type of this field to set
-setInitialFieldType<-function(name,type){
-
-  #Sets in the global environment
-  manualTypes<<-rbind(manualTypes,data.frame(name=name,type=type,stringsAsFactors = FALSE))
-}
+# setInitialFieldType<-function(name,type){
+# 
+#   #Sets in the global environment
+#   manualTypes<<-rbind(manualTypes,data.frame(name=name,type=type,stringsAsFactors = FALSE))
+# }
 
 
 # function to get if each field is either NUMERIC or SYMBOLIC
@@ -90,11 +90,13 @@ getFieldTypes<-function(dataset, continuousFields=list(), orderedFields=list(), 
   field_types<-vector()
   for(field in 1:(ncol(dataset))){
 
-    entry<-which(manualTypes$name==names(dataset)[field])
-    if (length(entry)>0){
-      field_types[field]<-manualTypes$type[entry]
-      next
-    }
+    #manual types is always empty so the if statement is never entered
+    #redundant condition
+    # entry<-which(manualTypes$name==names(dataset)[field])
+    # if (length(entry)>0){
+    #   field_types[field]<-manualTypes$type[entry]
+    #   next
+    # }
 
     if (is.numeric(dataset[,field]) && !(names(dataset)[field] %in% orderedFields)) {
       field_types[field]<-TYPE_NUMERIC
@@ -655,10 +657,11 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
     }
   }
 }
+# redundant function
 # function to get numeric dataframe from original dataframe
 # inputs:
 # dataframe - data frame - the data to get the numerical fields from
-getNumericDataframe <- function(dataframe) {
-  numeric_df <- dplyr::select(dataframe, where(is.numeric))
-  return(numeric_df)
-}
+# getNumericDataframe <- function(dataframe) {
+#   numeric_df <- dplyr::select(dataframe, where(is.numeric))
+#   return(numeric_df)
+# }
