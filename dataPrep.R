@@ -668,3 +668,22 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
 #   numeric_df <- dplyr::select(dataframe, where(is.numeric))
 #   return(numeric_df)
 # }
+
+# function to combine two fields
+# inputs:
+# column name 1, column name 2, the expression to apply to the columns, 
+# dataframe and name of the new column
+combineFields <- function(colName1, colName2, dataframe, fun, newColName) {
+  newDataframe <- data.frame()
+  
+  column1 <- dataframe[[colName1]]
+  column2 <- dataframe[[colName2]]
+
+  # apply the function to create the new column
+  newColumn <- fun(column1, column2)  
+  
+  # add the new column to the dataframe
+  dataframe[[newColName]] <- newColumn
+  
+  return(dataframe)
+}
