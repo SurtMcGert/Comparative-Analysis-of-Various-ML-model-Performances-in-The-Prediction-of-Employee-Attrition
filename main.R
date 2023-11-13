@@ -282,12 +282,15 @@ main<-function(){
   print("encoding non ordered categorical data")
   categoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
+  
   # Combine the two sets of data that are read for ML
   combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
 
   # process the ordered categorical fields
   print("encoding ordered categorical data")
   orderedCategoricalReadyforML<-encodeOrderedCategorical(dataset=dataset, field_types=field_types)
+  
+  View(orderedCategoricalReadyforML)
   
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
@@ -302,14 +305,13 @@ main<-function(){
   # Randomise the entire data set
   combinedML<-combinedML[sample(nrow(combinedML)),]
   
-  # Create a TRAINING dataset using first HOLDOUT% of the records
-  # and the remaining 30% is used as TEST
-  # use ALL fields (columns)
-  training_records<-round(nrow(combinedML)*(HOLDOUT/100))
-  training_data <- combinedML[1:training_records,]
-  testing_data = combinedML[-(1:training_records),]
+  # Use combinedML to split the dataset into a training, testing split at 70-30 split
   
-  Model(training_data = training_data, testing_data = testing_data)
+  # Puts the two training and testing splits into a list
+  splitList <- splitDataset(combinedML)
+  
+  # Calling a model
+  #Model(training_data = splitList$train, testing_data = splitList$test)
   
   
 }
