@@ -264,6 +264,9 @@ cleanData<-function(dataset, remove = list()){
     # Convert into factors. A level for each unique string
     ffield<-factor(dataset[,field])
     # Check if just one value!
+    
+    # nlevels returns the number of unique rows in the column
+    # If there is only one unique row in the column it is useless as we cannot learn from it
     if (nlevels(ffield) ==1) {
       #mark column for removal
       markedColumns <- append(markedColumns, names(dataset[field]))
