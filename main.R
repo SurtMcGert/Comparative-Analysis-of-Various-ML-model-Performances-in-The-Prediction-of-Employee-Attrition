@@ -25,6 +25,7 @@ ORDERED_FIELDS          <- list("Education",
                                 "JobSatisfaction", 
                                 "WorkLifeBalance", 
                                 "BusinessTravel") # the list of fields that need marking as ordered symbolic
+
 CONTINUOUS_FIELDS       <- list("XUFEFFAge", 
                                 "DistanceFromHome",
                                 "PerformanceWithCurrentManager",
@@ -271,9 +272,8 @@ main<-function(){
   continuousReadyforML<-rescaleDataFrame(zscaled)
   print(continuousReadyforML)
 
-  # Process the catagorical (symbolic/discrete) fields using 1-hot-encoding
   print("encoding non ordered categorical data")
-  catagoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
+  categoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
   # Combine the two sets of data that are read for ML
   combinedML<-cbind(continuousReadyforML,catagoricalReadyforML)
