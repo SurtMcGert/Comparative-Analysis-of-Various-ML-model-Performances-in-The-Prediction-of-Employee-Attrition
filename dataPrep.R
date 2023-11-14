@@ -673,9 +673,8 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
 # inputs:
 # column name 1, column name 2, the expression to apply to the columns, 
 # dataframe and name of the new column
-combineFields <- function(colName1, colName2, dataframe, fun, newColName) {
-  newDataframe <- data.frame()
-  
+combineOrDeriveFields <- function(dataframe, colName1, colName2, fun, newColName, combine = FALSE) {
+
   column1 <- dataframe[[colName1]]
   column2 <- dataframe[[colName2]]
 
@@ -684,6 +683,18 @@ combineFields <- function(colName1, colName2, dataframe, fun, newColName) {
   
   # add the new column to the dataframe
   dataframe[[newColName]] <- newColumn
+  
+  # if (combine) {
+  #   print("Deleting old columns...")
+  #   #dataset <- subset(dataset, select = -c(column1, column2))
+  #   dataset <- select(dataset, -c(column1, column2))
+  # }
+  
+  if (combine) {
+    print("Deleting...")
+    #dataframe <- subset(dataframe, select = -c(column1, column2))
+    dataframe <- dataframe[, -which(names(dataframe) %in% c(colName1, colName2))]
+  }
   
   return(dataframe)
 }
