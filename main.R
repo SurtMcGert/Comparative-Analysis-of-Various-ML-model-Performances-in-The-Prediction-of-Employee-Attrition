@@ -12,9 +12,8 @@ FIELDS_FOR_REMOVAL      <- list("DailyRate",
                                 "MaritalStatus", 
                                 "EmployeeNumber", 
                                 "JobInvolvement", 
-                                "PerformanceRating", 
-                                "RelationshipSatisfaction", 
-                                "YearsWithCurrManager", 
+                                "RelationshipSatisfaction",
+                                "PerformanceRating",
                                 "MonthlyIncome", 
                                 "MonthlyRate", 
                                 "PercentSalaryHike", 
@@ -30,7 +29,11 @@ CONTINUOUS_FIELDS       <- list("XUFEFFAge",
                                 "DistanceFromHome",
                                 "PerformanceWithCurrentManager",
                                 "Age",
-                                "TotalWorkingYears") # the list of fields that should be overriden as continuous
+                                "TotalWorkingYears",
+                                "TrainingTimesLastYear",
+                                "YearsAtCompany",
+                                "YearsInCurrentRole",
+                                "YearsSinceLastPromotion") # the list of fields that should be overriden as continuous
 
 HOLDOUT                 <- 70                   # % split to create TRAIN dataset
 
@@ -242,19 +245,23 @@ main<-function(){
     return(results)
   }
   
-  # combine fields before removing any
-  dataset <- combineFields("YearsWithCurrManager", "YearsSinceLastPromotion", dataset, divide, "PerformanceWithCurrentManager")
-
   # clean data
   dataset <- cleanData(dataset, remove = FIELDS_FOR_REMOVAL)
-
+  
+  #View(dataset)
+  
+  # combine fields before removing any
+  dataset <- combineOrDeriveFields(dataset, "YearsWithCurrManager", "YearsSinceLastPromotion", divide, "PerformanceWithCurrentManager", TRUE)
+  
+  View(dataset)
+  
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
   print(field_types)
  
   # plot our data
-  plotData(dataset, OUTPUT_FIELD, field_types)
-  prettyDataset(dataset)
+  #plotData(dataset, OUTPUT_FIELD, field_types)
+  #prettyDataset(dataset)
   
   results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
@@ -276,7 +283,7 @@ main<-function(){
   categoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
   # Combine the two sets of data that are read for ML
-  combinedML<-cbind(continuousReadyforML,catagoricalReadyforML)
+  combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
 
   # process the ordered categorical fields
   print("encoding ordered categorical data")
@@ -284,6 +291,8 @@ main<-function(){
   
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
+  
+  View(combinedML)
   
   # the dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
