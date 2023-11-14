@@ -25,8 +25,12 @@ ORDERED_FIELDS          <- list("Education",
                                 "JobSatisfaction", 
                                 "WorkLifeBalance", 
                                 "BusinessTravel") # the list of fields that need marking as ordered symbolic
-CONTINUOUS_FIELDS       <- list("Age", 
-                                "DistanceFromHome") # the list of fields that should be overriden as continuous
+
+CONTINUOUS_FIELDS       <- list("XUFEFFAge", 
+                                "DistanceFromHome",
+                                "PerformanceWithCurrentManager",
+                                "Age",
+                                "TotalWorkingYears") # the list of fields that should be overriden as continuous
 
 HOLDOUT                 <- 70                   # % split to create TRAIN dataset
 
@@ -224,18 +228,33 @@ main<-function(){
   
   print(paste("using dataset: ", DATASET_FILENAME))
 
-
   # read the dataset
   dataset<-readDataset(DATASET_FILENAME)
+  
+  # formula to divide two columns and obtain a ratio
+  # to understand the average time between promotions relative to the time spent with the current manager.
+  # this ratio could provide insights into the frequency of promotions in relation to the duration of the 
+  # current managerial relationship. For example, a higher ratio might suggest that employees tend to receive 
+  # promotions more frequently in comparison to the time they spend with their current manager.
+  divide <- function(colName1, colName2, dataframe) {
+    results <- colName1 / colName2
+    results[is.infinite(results) | is.nan(results)] <- 0
+    return(results)
+  }
+  
+  # combine fields before removing any
+  dataset <- combineFields("YearsWithCurrManager", "YearsSinceLastPromotion", dataset, divide, "PerformanceWithCurrentManager")
+
+  # clean data
   dataset <- cleanData(dataset, remove = FIELDS_FOR_REMOVAL)
+
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
   print(field_types)
-  
-  #plot our data
+ 
+  # plot our data
   plotData(dataset, OUTPUT_FIELD, field_types)
   prettyDataset(dataset)
-  
   
   results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
@@ -251,14 +270,14 @@ main<-function(){
   
   # n the chosen classifier, the input values need to be scaled to [0.0,1.0]
   continuousReadyforML<-rescaleDataFrame(zscaled)
-  
-  # Process the categorical (symbolic/discrete) fields using 1-hot-encoding
+  print(continuousReadyforML)
+
   print("encoding non ordered categorical data")
   categoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
   # Combine the two sets of data that are read for ML
-  combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
-  
+  combinedML<-cbind(continuousReadyforML,catagoricalReadyforML)
+
   # process the ordered categorical fields
   print("encoding ordered categorical data")
   orderedCategoricalReadyforML<-encodeOrderedCategorical(dataset=dataset, field_types=field_types)
@@ -266,7 +285,7 @@ main<-function(){
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
   
-  #The dataset for ML information
+  # the dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
   
   # Create a TRAINING dataset using HOLDOUT% (e.g. 70) of the records

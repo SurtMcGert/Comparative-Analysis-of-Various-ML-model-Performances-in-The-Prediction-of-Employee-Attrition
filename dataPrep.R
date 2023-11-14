@@ -9,7 +9,7 @@
 
 # Pre-Processing a Dataset functions
 # This will store $name=field name, $type=field type
-manualTypes <- data.frame()
+# manualTypes <- data.frame()
 
 # function to scale a vector between 0 and 1
 # input:
@@ -65,16 +65,16 @@ readDataset<-function(csvFilename){
   return(dataset)
 }
 
-
+# Redundant
 # function to set each field for NUMERIC or SYNBOLIC
 # inputs:
 # name - String - name of the field to manually set
 # type - String - the type of this field to set
-setInitialFieldType<-function(name,type){
-
-  #Sets in the global environment
-  manualTypes<<-rbind(manualTypes,data.frame(name=name,type=type,stringsAsFactors = FALSE))
-}
+# setInitialFieldType<-function(name,type){
+# 
+#   #Sets in the global environment
+#   manualTypes<<-rbind(manualTypes,data.frame(name=name,type=type,stringsAsFactors = FALSE))
+# }
 
 
 # function to get if each field is either NUMERIC or SYMBOLIC
@@ -90,11 +90,13 @@ getFieldTypes<-function(dataset, continuousFields=list(), orderedFields=list(), 
   field_types<-vector()
   for(field in 1:(ncol(dataset))){
 
-    entry<-which(manualTypes$name==names(dataset)[field])
-    if (length(entry)>0){
-      field_types[field]<-manualTypes$type[entry]
-      next
-    }
+    #manual types is always empty so the if statement is never entered
+    #redundant condition
+    # entry<-which(manualTypes$name==names(dataset)[field])
+    # if (length(entry)>0){
+    #   field_types[field]<-manualTypes$type[entry]
+    #   next
+    # }
 
     if (is.numeric(dataset[,field]) && !(names(dataset)[field] %in% orderedFields)) {
       field_types[field]<-TYPE_NUMERIC
@@ -159,7 +161,7 @@ getDiscreteOrContinuous<-function(dataset, field_types, cutoff, continuousFields
     }
     # override
     if(names(dataset)[field] %in% continuousFields){
-      field_types[field] = TYPE_CONTINUOUS
+      field_types[field] <- TYPE_CONTINUOUS
     }
     else if(names(dataset)[field] %in% discreteFields){
       field_types[field]<-TYPE_DISCRETE
@@ -262,6 +264,9 @@ cleanData<-function(dataset, remove = list()){
     # Convert into factors. A level for each unique string
     ffield<-factor(dataset[,field])
     # Check if just one value!
+    
+    # nlevels returns the number of unique rows in the column
+    # If there is only one unique row in the column it is useless as we cannot learn from it
     if (nlevels(ffield) ==1) {
       #mark column for removal
       markedColumns <- append(markedColumns, names(dataset[field]))
@@ -655,10 +660,30 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
     }
   }
 }
+# redundant function
 # function to get numeric dataframe from original dataframe
 # inputs:
 # dataframe - data frame - the data to get the numerical fields from
-getNumericDataframe <- function(dataframe) {
-  numeric_df <- dplyr::select(dataframe, where(is.numeric))
-  return(numeric_df)
+# getNumericDataframe <- function(dataframe) {
+#   numeric_df <- dplyr::select(dataframe, where(is.numeric))
+#   return(numeric_df)
+# }
+
+# function to combine two fields
+# inputs:
+# column name 1, column name 2, the expression to apply to the columns, 
+# dataframe and name of the new column
+combineFields <- function(colName1, colName2, dataframe, fun, newColName) {
+  newDataframe <- data.frame()
+  
+  column1 <- dataframe[[colName1]]
+  column2 <- dataframe[[colName2]]
+
+  # apply the function to create the new column
+  newColumn <- fun(column1, column2)  
+  
+  # add the new column to the dataframe
+  dataframe[[newColName]] <- newColumn
+  
+  return(dataframe)
 }
