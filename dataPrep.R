@@ -673,6 +673,9 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
 # inputs:
 # column name 1, column name 2, the expression to apply to the columns, 
 # dataframe and name of the new column
+# fun: function to apply to the two input columns
+# newColName: The name of the new column that will be created
+# combine: set to true to remove the two input columns after the new column has been created
 combineOrDeriveFields <- function(dataframe, colName1, colName2, fun, newColName, combine = FALSE) {
 
   column1 <- dataframe[[colName1]]
@@ -699,64 +702,51 @@ combineOrDeriveFields <- function(dataframe, colName1, colName2, fun, newColName
   return(dataframe)
 }
 
-
-
-# function to derive a new column by taking two existing columns and applying a single operator to it
-# Important note, this function uses parse so the inputs need to be sanitised!
-
+# Function to resample a dataframe in the case that a given class is imbalanced.
 # Inputs:
-# dataframe - the original dataframe which contains the columns you want to derive from
-# column1 - the first column you want to derive from
-# column2 - the second column you want to derive from
-# name - The name of new derived field
-# operator - +, -, *, /  - Applies the function in the format eg. column1 + column2
+# dataframe - the dataframe you want to resample
+# methodUsed - can be either 'both', 'over' or 'under'. Both uses both oversampling and undersampling
+# over refers to oversampling by creating synthetic data for the underrepresented class. this data may not relate to the real world!
+# under refers to undersampling by randomly removing from both classes according to the disparity between them
+# columnName - what column you want rebalance according to, NOTE THE COLUMN MUST HAVE 2 UNIQUE VALUES FOR IT TO WORK ie. Attrition
+# Outputs:
+# the rebalanced dataframe calculated
 
-# Output:
-# Returns the given dataframe with the new column added to it
-DerivationSingleOperator <- function(dataframe, column1, column2, name, operator) {
+rebalance <- function(dataframe, methodUsed = "both", columnName) {
+  # Show the imbalance of the selected column, by selecting the counts for each unique value
+  print("Before") # Note there are two prints because R is bipolar and chooses when to break each one
+  print(table(dataframe[columnName])) # 1233 Nos to 237 Yes for Attrition
+  #print(table(dataframe$columnName))
   
-  # Operator sanitisation
-  if (!(operator %in% c("+", "-", "*", "/"))) {
-    print("Invalid Operator!")
-    # Exit from function early
-    return()
+  # Setting as global variable so that ovun.sample can see it (dont ask me why)
+  columnName <<- columnName
+  
+  dataframe <<- dataframe
+  
+  # Converts the column name from a string into a formula that can be used by ovun sample to select according to
+  formula <- as.formula(paste(columnName, "~ ."))
+  
+  # Uses different sampling according to the methodUsed. You can adjust the probability of a row being selected by adjusting p.
+  if (methodUsed == "both") {
+    print("Using both undersampling and oversampling")
+    rebalanced <- ovun.sample(formula, data = dataframe, N=nrow(dataframe), p=0.5, seed = 1, method = "both")$data
+  }
+  else if (methodUsed == "under"){
+    print("Using Undersampling")
+    rebalanced <- ovun.sample(formula, data = dataframe, p=0.5, seed = 1, method = "under")$data
+  }
+  else if (methodUsed == "over") {
+    ("Using Oversampling")
+    rebalanced <- ovun.sample(formula, data = dataframe, p=0.5, seed = 1, method = "over")$data
   }
   
-  # getting the column data
-  col1 <- dataframe[[column1]]
-  col2 <- dataframe[[column2]]
-
-  # Creating an empty dataframe  
-  derivedDF <- data.frame()
+  #rebalanced <- ovun.sample(Attrition~., data = dataframe, N=nrow(dataframe), p=0.5, seed = 1, method = "both")$data
   
-  # Iterate through each row in both columns
-  for (i in seq_len(nrow(dataframe))) {
-    
-    #print(col1[[i]])
-    # Creates an expression in the format a+b
-    expression <- paste(col1[[i]], operator, col2[[i]], sep = "")
-
-    #print(expression)
-    
-    # Performs the expression using the data and stores into value, remember to be careful using parse 
-    value <- eval(parse(text = expression))
-    
-    # Handles when doing divide by 0, resets to 0
-    if (is.infinite(value)) {
-      value <- 0
-    }
-
-    #print(value)
-    
-    # Adds the result of the expression to a new dataframe
-    derivedDF <- rbind(derivedDF, value)
-
-  }
   
-  #print(derivedDF)
+  # Shows the after results of rebalancing
+  print("After")
+  print(table(rebalanced[columnName]))
+  #print(table(rebalanced$columnName))
   
-  # Merge the dataframe with the original dataset
-  dataframe[name] <- derivedDF
-  
-  return(dataframe)
+  return(rebalanced)
 }

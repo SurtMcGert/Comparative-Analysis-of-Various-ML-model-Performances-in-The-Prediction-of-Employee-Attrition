@@ -33,7 +33,8 @@ CONTINUOUS_FIELDS       <- list("XUFEFFAge",
                                 "TrainingTimesLastYear",
                                 "YearsAtCompany",
                                 "YearsInCurrentRole",
-                                "YearsSinceLastPromotion") # the list of fields that should be overriden as continuous
+                                "YearsSinceLastPromotion",
+                                "AgeJoined") # the list of fields that should be overriden as continuous
 
 HOLDOUT                 <- 70                   # % split to create TRAIN dataset
 
@@ -245,6 +246,15 @@ main<-function(){
     return(results)
   }
   
+  # Standard subtraction formula used in combineOrDeriveFields
+  # Used in creating AgeJoined created from the employee Age and the years they have worked at the company
+  # Provides insights on how the age that they joined the company may affect their loyalty and work ethic toward the company
+  # Also may provide an interesting trend on attrition
+  subtract <- function(colName1, colName2, dataframe) {
+    results <- colName1 - colName2
+    return(results)
+  }
+  
   # clean data
   dataset <- cleanData(dataset, remove = FIELDS_FOR_REMOVAL)
   
@@ -252,16 +262,19 @@ main<-function(){
   
   # combine fields before removing any
   dataset <- combineOrDeriveFields(dataset, "YearsWithCurrManager", "YearsSinceLastPromotion", divide, "PerformanceWithCurrentManager", TRUE)
+  dataset <- combineOrDeriveFields(dataset, "Age", "YearsAtCompany", subtract, "AgeJoined", FALSE)
   
-  View(dataset)
+  #View(dataset)
+  
+  dataset <- rebalance(dataset, methodUsed = "both", "Attrition")
   
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
   print(field_types)
  
   # plot our data
-  #plotData(dataset, OUTPUT_FIELD, field_types)
-  #prettyDataset(dataset)
+  plotData(dataset, OUTPUT_FIELD, field_types)
+  prettyDataset(dataset)
   
   results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
@@ -290,7 +303,7 @@ main<-function(){
   print("encoding ordered categorical data")
   orderedCategoricalReadyforML<-encodeOrderedCategorical(dataset=dataset, field_types=field_types)
   
-  View(orderedCategoricalReadyforML)
+  # View(orderedCategoricalReadyforML)
   
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
