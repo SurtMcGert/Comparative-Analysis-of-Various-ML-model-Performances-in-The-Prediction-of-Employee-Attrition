@@ -33,7 +33,8 @@ CONTINUOUS_FIELDS       <- list("XUFEFFAge",
                                 "TrainingTimesLastYear",
                                 "YearsAtCompany",
                                 "YearsInCurrentRole",
-                                "YearsSinceLastPromotion") # the list of fields that should be overriden as continuous
+                                "YearsSinceLastPromotion",
+                                "AgeJoined") # the list of fields that should be overriden as continuous
 
 HOLDOUT                 <- 70                   # % split to create TRAIN dataset
 
@@ -245,6 +246,15 @@ main<-function(){
     return(results)
   }
   
+  # Standard subtraction formula used in combineOrDeriveFields
+  # Used in creating AgeJoined created from the employee Age and the years they have worked at the company
+  # Provides insights on how the age that they joined the company may affect their loyalty and work ethic toward the company
+  # Also may provide an interesting trend on attrition
+  subtract <- function(colName1, colName2, dataframe) {
+    results <- colName1 - colName2
+    return(results)
+  }
+  
   # clean data
   dataset <- cleanData(dataset, remove = FIELDS_FOR_REMOVAL)
   
@@ -252,16 +262,19 @@ main<-function(){
   
   # combine fields before removing any
   dataset <- combineOrDeriveFields(dataset, "YearsWithCurrManager", "YearsSinceLastPromotion", divide, "PerformanceWithCurrentManager", TRUE)
+  dataset <- combineOrDeriveFields(dataset, "Age", "YearsAtCompany", subtract, "AgeJoined", FALSE)
   
-  View(dataset)
+  #View(dataset)
+  
+  dataset <- rebalance(dataset, methodUsed = "both", "Attrition")
   
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
   print(field_types)
  
   # plot our data
-  #plotData(dataset, OUTPUT_FIELD, field_types)
-  #prettyDataset(dataset)
+  plotData(dataset, OUTPUT_FIELD, field_types)
+  prettyDataset(dataset)
   
   results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
@@ -282,12 +295,15 @@ main<-function(){
   print("encoding non ordered categorical data")
   categoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
+  
   # Combine the two sets of data that are read for ML
   combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
 
   # process the ordered categorical fields
   print("encoding ordered categorical data")
   orderedCategoricalReadyforML<-encodeOrderedCategorical(dataset=dataset, field_types=field_types)
+  
+  # View(orderedCategoricalReadyforML)
   
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
@@ -302,14 +318,13 @@ main<-function(){
   # Randomise the entire data set
   combinedML<-combinedML[sample(nrow(combinedML)),]
   
-  # Create a TRAINING dataset using first HOLDOUT% of the records
-  # and the remaining 30% is used as TEST
-  # use ALL fields (columns)
-  training_records<-round(nrow(combinedML)*(HOLDOUT/100))
-  training_data <- combinedML[1:training_records,]
-  testing_data = combinedML[-(1:training_records),]
+  # Use combinedML to split the dataset into a training, testing split at 70-30 split
   
-  Model(training_data = training_data, testing_data = testing_data)
+  # Puts the two training and testing splits into a list
+  splitList <- splitDataset(combinedML)
+  
+  # Calling a model
+  #Model(training_data = splitList$train, testing_data = splitList$test)
   
   
 }
