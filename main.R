@@ -72,7 +72,8 @@ LIBRARIES<-c("outliers",
                "PerformanceAnalytics",
                "tidyverse",
                 "reshape2",
-             "car")
+             "car",
+             "ROSE")
 
 
 
@@ -266,7 +267,9 @@ main<-function(){
   
   #View(dataset)
   
-  dataset <- rebalance(dataset, methodUsed = "both", "Attrition")
+  
+  # Example use of rebalancing a dataset, call this in your model if it needs it as not all models need data rebalancing!
+  # dataset <- rebalance(dataset, methodUsed = "both", "Attrition")
   
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
