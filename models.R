@@ -79,7 +79,6 @@ getTreeClassifications<-function(myTree,
                                  OUTPUT_FIELD){
   
   positionClassOutput=which(names(testDataset)==OUTPUT_FIELD)
-  print(positionClassOutput)
   
   #test data: dataframe with with just input fields
   test_inputs<-testDataset[-positionClassOutput]
@@ -93,12 +92,10 @@ getTreeClassifications<-function(myTree,
   classIndex<-which(as.numeric(colnames(testPredictedClassProbs))==classLabel)
   
   # Get the probabilities for classifying attrition
-  # test_predictedProbs<-testPredictedClassProbs[,classIndex]
+  test_predictedProbs<-testPredictedClassProbs[,classIndex]
   
   #test data: vector with just the expected output class
   test_expected<-testDataset[,positionClassOutput]
-  
-  predictedLabels <- colnames(testPredictedClassProbs)[apply(testPredictedClassProbs,1,which.max)]
   
   # measures<-NdetermineThreshold(test_expected=test_expected,
   #                               test_predicted=test_predictedProbs,
@@ -109,10 +106,5 @@ getTreeClassifications<-function(myTree,
   #   NprintMeasures(results=measures,title=title)
   # 
   # return(measures)
-  
-  confusionMatrix <- confusionMatrix(as.factor(test_expected), as.factor(predictedLabels))
-  
-  print(confusionMatrix)
-  
   return(test_predictedProbs)
 } #endof getTreeClassifications()
