@@ -64,7 +64,8 @@ LIBRARIES<-c("outliers",
                "PerformanceAnalytics",
                "tidyverse",
                 "reshape2",
-             "car")
+             "car",
+             "neuralnet")
 
 
 
@@ -91,9 +92,10 @@ displayPerformance<-function(probs,testing_data, name){
     results<-evaluate(probs=probs,testing_data=testing_data,threshold=threshold)
     if(as.numeric(results["accuracy"]) > as.numeric(bestAccuracy)){
       bestResults = results
+      bestResults["threshold"] = threshold
       bestAccuracy = results["accuracy"]
     }
-    toPlot<-rbind(toPlot,data.frame(x=threshold,fpr=results$FPR,tpr=results$TPR))
+    toPlot<-rbind(toPlot,data.frame(x=threshold,fpr=results$FPR,tpr=results$TPR,accuracy=results$accuracy))
   }
   
   toPlot$youdan<-toPlot$tpr+(1-toPlot$fpr)-1
@@ -122,7 +124,7 @@ displayPerformance<-function(probs,testing_data, name){
     geom_vline(aes(xintercept = max), color="green")+ # draw a green vertical line at the maximum of each metric
     facet_wrap(~variable)+ # put the data for each variable in its own box
     theme_bw()+ # the black and white theme
-    labs(title = name) # set the title of the plot
+    labs(x = "threshold", title = name) # set the title of the plot
   )
 }
 
@@ -189,7 +191,7 @@ modelFormula<-function(dataset, fieldNameOutput, fields=list()){
 # inputs:
 # training_data - data frame - the data to train the model on
 # testing_data - data frame - the data to evaluate the model on
-Model<-function(training_data,testing_data){
+Model<-function(training_data,testing_data, plot_heading){
   # call the formula function
   formular<-modelFormula(dataset=training_data,fieldNameOutput=OUTPUT_FIELD)
   
@@ -211,8 +213,10 @@ Model<-function(training_data,testing_data){
     probabilities <- predictions[[i]]
     print(paste(name))
     if(length(probabilities) > 0){
+      name = paste(predictionNames[i], "/")
+      name = paste(name, plot_heading)
       results<-evaluate(probs=probabilities, testing_data=testing_data, threshold=threshold)
-      results<-displayPerformance(probs=probabilities,testing_data=testing_data, name=predictionNames[i])
+      results<-displayPerformance(probs=probabilities,testing_data=testing_data, name=name)
     }
   }
 }
@@ -240,6 +244,8 @@ main<-function(){
   results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
   
+  
+  # pre processing first dataset
   print("encoding continuous data")
   continuous<-as.data.frame(dataset[which(field_types==TYPE_CONTINUOUS)])
   continuous<-removeOutliers(continuous=continuous,confidence=OUTLIER_CONF)
@@ -279,7 +285,11 @@ main<-function(){
   training_data <- combinedML[1:training_records,]
   testing_data = combinedML[-(1:training_records),]
   
-  Model(training_data = training_data, testing_data = testing_data)
+  
+  Model(training_data = training_data, testing_data = testing_data, plot_heading = "first dataset")
+  
+  #pre processing second dataset
+  #TODO PROCESS A SECOND DATASET
   
   
 }
