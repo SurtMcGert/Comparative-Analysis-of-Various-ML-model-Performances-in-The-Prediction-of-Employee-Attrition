@@ -12,9 +12,8 @@ FIELDS_FOR_REMOVAL      <- list("DailyRate",
                                 "MaritalStatus", 
                                 "EmployeeNumber", 
                                 "JobInvolvement", 
-                                "PerformanceRating", 
-                                "RelationshipSatisfaction", 
-                                "YearsWithCurrManager", 
+                                "RelationshipSatisfaction",
+                                "PerformanceRating",
                                 "MonthlyIncome", 
                                 "MonthlyRate", 
                                 "PercentSalaryHike", 
@@ -25,8 +24,17 @@ ORDERED_FIELDS          <- list("Education",
                                 "JobSatisfaction", 
                                 "WorkLifeBalance", 
                                 "BusinessTravel") # the list of fields that need marking as ordered symbolic
+
 CONTINUOUS_FIELDS       <- list("XUFEFFAge", 
-                                "DistanceFromHome") # the list of fields that should be overriden as continuous
+                                "DistanceFromHome",
+                                "PerformanceWithCurrentManager",
+                                "Age",
+                                "TotalWorkingYears",
+                                "TrainingTimesLastYear",
+                                "YearsAtCompany",
+                                "YearsInCurrentRole",
+                                "YearsSinceLastPromotion",
+                                "AgeJoined") # the list of fields that should be overriden as continuous
 
 HOLDOUT                 <- 70                   # % split to create TRAIN dataset
 
@@ -66,7 +74,9 @@ LIBRARIES<-c("outliers",
                 "reshape2",
              "car",
              "neuralnet",
-             "e1071")
+             "e1071",
+             "ROSE")
+
 
 
 
@@ -229,21 +239,56 @@ main<-function(){
   
   print(paste("using dataset: ", DATASET_FILENAME))
 
-
   # read the dataset
   dataset<-readDataset(DATASET_FILENAME)
+  
+  # formula to divide two columns and obtain a ratio
+  # to understand the average time between promotions relative to the time spent with the current manager.
+  # this ratio could provide insights into the frequency of promotions in relation to the duration of the 
+  # current managerial relationship. For example, a higher ratio might suggest that employees tend to receive 
+  # promotions more frequently in comparison to the time they spend with their current manager.
+  divide <- function(colName1, colName2, dataframe) {
+    results <- colName1 / colName2
+    results[is.infinite(results) | is.nan(results)] <- 0
+    return(results)
+  }
+  
+  # Standard subtraction formula used in combineOrDeriveFields
+  # Used in creating AgeJoined created from the employee Age and the years they have worked at the company
+  # Provides insights on how the age that they joined the company may affect their loyalty and work ethic toward the company
+  # Also may provide an interesting trend on attrition
+  subtract <- function(colName1, colName2, dataframe) {
+    results <- colName1 - colName2
+    return(results)
+  }
+  
+  # clean data
   dataset <- cleanData(dataset, remove = FIELDS_FOR_REMOVAL)
+  
+  #View(dataset)
+  
+  # combine fields before removing any
+  dataset <- combineOrDeriveFields(dataset, "YearsWithCurrManager", "YearsSinceLastPromotion", divide, "PerformanceWithCurrentManager", TRUE)
+  dataset <- combineOrDeriveFields(dataset, "Age", "YearsAtCompany", subtract, "AgeJoined", FALSE)
+  
+  #View(dataset)
+  
+  
+  # Example use of rebalancing a dataset, call this in your model if it needs it as not all models need data rebalancing!
+  # dataset <- rebalance(dataset, methodUsed = "both", "Attrition")
+  
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
-  
-  
-  #plot our data
+  print(field_types)
+ 
+  # plot our data
   plotData(dataset, OUTPUT_FIELD, field_types)
   prettyDataset(dataset)
   
-  
   results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
+  print("Results")
+  print(results)
   
   
   # pre processing first dataset
@@ -256,22 +301,27 @@ main<-function(){
   
   # n the chosen classifier, the input values need to be scaled to [0.0,1.0]
   continuousReadyforML<-rescaleDataFrame(zscaled)
-  
-  # Process the catagorical (symbolic/discrete) fields using 1-hot-encoding
+  print(continuousReadyforML)
+
   print("encoding non ordered categorical data")
-  catagoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
+  categoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
+  
   
   # Combine the two sets of data that are read for ML
-  combinedML<-cbind(continuousReadyforML,catagoricalReadyforML)
-  
+  combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
+
   # process the ordered categorical fields
   print("encoding ordered categorical data")
   orderedCategoricalReadyforML<-encodeOrderedCategorical(dataset=dataset, field_types=field_types)
   
+  # View(orderedCategoricalReadyforML)
+  
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
   
-  #The dataset for ML information
+  View(combinedML)
+  
+  # the dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
   
   # Create a TRAINING dataset using HOLDOUT% (e.g. 70) of the records
@@ -279,19 +329,17 @@ main<-function(){
   # Randomise the entire data set
   combinedML<-combinedML[sample(nrow(combinedML)),]
   
-  # Create a TRAINING dataset using first HOLDOUT% of the records
-  # and the remaining 30% is used as TEST
-  # use ALL fields (columns)
-  training_records<-round(nrow(combinedML)*(HOLDOUT/100))
-  training_data <- combinedML[1:training_records,]
-  testing_data = combinedML[-(1:training_records),]
+  # Use combinedML to split the dataset into a training, testing split at 70-30 split
+  
+  # Puts the two training and testing splits into a list
+  splitList <- splitDataset(combinedML)
   
   
   Model(training_data = training_data, testing_data = testing_data, plot_heading = "first dataset")
   
   #pre processing second dataset
   #TODO PROCESS A SECOND DATASET
-  
+
   
 }
 
