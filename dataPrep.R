@@ -9,7 +9,7 @@
 
 # Pre-Processing a Dataset functions
 # This will store $name=field name, $type=field type
-manualTypes <- data.frame()
+# manualTypes <- data.frame()
 
 # function to scale a vector between 0 and 1
 # input:
@@ -53,7 +53,7 @@ removePunctuation<-function(input){
 readDataset<-function(csvFilename){
   
   # read the dataset
-  dataset<-read.csv(csvFilename,encoding="UTF-8",stringsAsFactors = FALSE)
+  dataset<-read.csv(csvFilename,fileEncoding="UTF-8-BOM",stringsAsFactors = FALSE)
   
   # read the names of all the variables in the dataset and remove any punctuation
   names(dataset)<-removePunctuation(names(dataset))
@@ -65,16 +65,16 @@ readDataset<-function(csvFilename){
   return(dataset)
 }
 
-
+# Redundant
 # function to set each field for NUMERIC or SYNBOLIC
 # inputs:
 # name - String - name of the field to manually set
 # type - String - the type of this field to set
-setInitialFieldType<-function(name,type){
-
-  #Sets in the global environment
-  manualTypes<<-rbind(manualTypes,data.frame(name=name,type=type,stringsAsFactors = FALSE))
-}
+# setInitialFieldType<-function(name,type){
+# 
+#   #Sets in the global environment
+#   manualTypes<<-rbind(manualTypes,data.frame(name=name,type=type,stringsAsFactors = FALSE))
+# }
 
 
 # function to get if each field is either NUMERIC or SYMBOLIC
@@ -90,11 +90,13 @@ getFieldTypes<-function(dataset, continuousFields=list(), orderedFields=list(), 
   field_types<-vector()
   for(field in 1:(ncol(dataset))){
 
-    entry<-which(manualTypes$name==names(dataset)[field])
-    if (length(entry)>0){
-      field_types[field]<-manualTypes$type[entry]
-      next
-    }
+    #manual types is always empty so the if statement is never entered
+    #redundant condition
+    # entry<-which(manualTypes$name==names(dataset)[field])
+    # if (length(entry)>0){
+    #   field_types[field]<-manualTypes$type[entry]
+    #   next
+    # }
 
     if (is.numeric(dataset[,field]) && !(names(dataset)[field] %in% orderedFields)) {
       field_types[field]<-TYPE_NUMERIC
@@ -159,7 +161,7 @@ getDiscreteOrContinuous<-function(dataset, field_types, cutoff, continuousFields
     }
     # override
     if(names(dataset)[field] %in% continuousFields){
-      field_types[field] = TYPE_CONTINUOUS
+      field_types[field] <- TYPE_CONTINUOUS
     }
     else if(names(dataset)[field] %in% discreteFields){
       field_types[field]<-TYPE_DISCRETE
@@ -177,7 +179,7 @@ getDiscreteOrContinuous<-function(dataset, field_types, cutoff, continuousFields
 # returns: data frame - transofmed dataset
 oneHotEncode<-function(dataset,field_types){
 
-  catagorical<-data.frame()
+  categorical<-data.frame()
 
   categorical_fields<-names(dataset)[which(field_types==TYPE_SYMBOLIC | field_types==TYPE_DISCRETE)]
 
@@ -211,10 +213,10 @@ oneHotEncode<-function(dataset,field_types){
       names(xx)<-field  # Field name without the value appended
     }
 
-  catagorical<-as.data.frame(append(catagorical,xx))
+  categorical<-as.data.frame(append(categorical,xx))
 
   }
-  return (catagorical)
+  return (categorical)
 
 }
 
@@ -262,6 +264,9 @@ cleanData<-function(dataset, remove = list()){
     # Convert into factors. A level for each unique string
     ffield<-factor(dataset[,field])
     # Check if just one value!
+    
+    # nlevels returns the number of unique rows in the column
+    # If there is only one unique row in the column it is useless as we cannot learn from it
     if (nlevels(ffield) ==1) {
       #mark column for removal
       markedColumns <- append(markedColumns, names(dataset[field]))
@@ -269,11 +274,24 @@ cleanData<-function(dataset, remove = list()){
     }
   }
   
-  
-  
-  
+
   #remove columns
   cleanedData <- dataset[,!(names(dataset) %in% markedColumns)]
+  
+  #identify numeric columns for removeRedundantFields
+  numericColumns <- sapply(cleanedData, is.numeric)
+
+  #apply removeRedundantFields only to numeric columns
+  if (any(numericColumns)) {
+    cleanedData[, numericColumns] <- removeRedundantFields(cleanedData[, numericColumns], 0.95)
+    print("removed redundant numeric fields")
+  } else {
+    print("no numeric columns for removeRedundantFields")
+  }
+  
+  
+  
+  print("removed redundant fields")
   print("cleaned data")
   return (cleanedData)
 }
@@ -472,13 +490,13 @@ calculateMeasures<-function(TP,FN,FP,TN){
                   "FN"=FN,
                   "TN"=TN,
                   "FP"=FP,
-                  "accuracy"=100.0*((TP+TN)/(TP+FP+FN+TN)),
-                  "pgood"=   100.0*(TP/(TP+FP)),
-                  "pbad"=    100.0*(TN/(FN+TN)),
-                  "FPR"=     100.0*(FP/(FP+TN)),
-                  "TPR"=     100.0*(TP/(TP+FN)),
-                  "TNR"=     100.0*(TN/(FP+TN)),
-                  "MCC"=     ((TP*TN)-(FP*FN))/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+                  "accuracy"=   100.0*((TP+TN)/(TP+FP+FN+TN)),
+                  "pgood"=      100.0*(TP/(TP+FP)),
+                  "pbad"=       100.0*(TN/(FN+TN)),
+                  "FPR"=        100.0*(FP/(FP+TN)),
+                  "TPR"=        100.0*(TP/(TP+FN)),
+                  "TNR"=        100.0*(TN/(FP+TN)),
+                  "MCC"=        ((TP*TN)-(FP*FN))/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
   )
   return(retList)
 }
@@ -543,7 +561,7 @@ prettyDataset<-function(dataset,...){
   params <- list(...)
 
   tidyTable<-data.frame(Field=names(dataset),
-                        Catagorical=FALSE,
+                        Categorical=FALSE,
                         Symbols=0,
                         Name=0,
                         Min=0.0,
@@ -558,9 +576,9 @@ prettyDataset<-function(dataset,...){
 
   for (i in 1:ncol(dataset)){
     isFieldAfactor<-!is.numeric(dataset[,i])
-    tidyTable$Catagorical[i]<-isFieldAfactor
+    tidyTable$Categorical[i]<-isFieldAfactor
     if (isFieldAfactor){
-      tidyTable$Symbols[i]<-length(unique(dataset[,i]))  #Number of symbols in catagorical
+      tidyTable$Symbols[i]<-length(unique(dataset[,i]))  #Number of symbols in categorical
       #Gets the count of each unique symbol
       symbolTable<-sapply(unique(dataset[,i]),function(x) length(which(dataset[,i]==x)))
       majoritySymbolPC<-round((sort(symbolTable,decreasing = TRUE)[1]/nrow(dataset))*100,digits=0)
@@ -575,14 +593,14 @@ prettyDataset<-function(dataset,...){
   }
 
   #Sort table so that all numerics are first
-  t<-formattable::formattable(tidyTable[order(tidyTable$Catagorical),],
-                              list(Catagorical = formatter("span",style = x ~ style(color = ifelse(x,"green", "red")),
+  t<-formattable::formattable(tidyTable[order(tidyTable$Categorical),],
+                              list(Categorical = formatter("span",style = x ~ style(color = ifelse(x,"green", "red")),
                                                            x ~ icontext(ifelse(x, "ok", "remove"), ifelse(x, "Yes", "No"))),
                                    Symbols = formatter("span",style = x ~ style(color = "black"),x ~ ifelse(x==0,"-",sprintf("%d", x))),
-                                   Min = formatter("span",style = x ~ style(color = "black"), ~ ifelse(Catagorical,"-",format(Min, nsmall=2, big.mark=","))),
-                                   Mean = formatter("span",style = x ~ style(color = "black"),~ ifelse(Catagorical,"-",format(Mean, nsmall=2, big.mark=","))),
-                                   Max = formatter("span",style = x ~ style(color = "black"), ~ ifelse(Catagorical,"-",format(Max, nsmall=2, big.mark=","))),
-                                   Skew = formatter("span",style = x ~ style(color = "black"),~ ifelse(Catagorical,"-",sprintf("%.2f", Skew)))
+                                   Min = formatter("span",style = x ~ style(color = "black"), ~ ifelse(Categorical,"-",format(Min, nsmall=2, big.mark=","))),
+                                   Mean = formatter("span",style = x ~ style(color = "black"),~ ifelse(Categorical,"-",format(Mean, nsmall=2, big.mark=","))),
+                                   Max = formatter("span",style = x ~ style(color = "black"), ~ ifelse(Categorical,"-",format(Max, nsmall=2, big.mark=","))),
+                                   Skew = formatter("span",style = x ~ style(color = "black"),~ ifelse(Categorical,"-",sprintf("%.2f", Skew)))
                               ))
   print(t)
 }
@@ -642,10 +660,93 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
     }
   }
 }
+# redundant function
 # function to get numeric dataframe from original dataframe
 # inputs:
 # dataframe - data frame - the data to get the numerical fields from
-getNumericDataframe <- function(dataframe) {
-  numeric_df <- dplyr::select(dataframe, where(is.numeric))
-  return(numeric_df)
+# getNumericDataframe <- function(dataframe) {
+#   numeric_df <- dplyr::select(dataframe, where(is.numeric))
+#   return(numeric_df)
+# }
+
+# function to combine two fields
+# inputs:
+# column name 1, column name 2, the expression to apply to the columns, 
+# dataframe and name of the new column
+# fun: function to apply to the two input columns
+# newColName: The name of the new column that will be created
+# combine: set to true to remove the two input columns after the new column has been created
+combineOrDeriveFields <- function(dataframe, colName1, colName2, fun, newColName, combine = FALSE) {
+
+  column1 <- dataframe[[colName1]]
+  column2 <- dataframe[[colName2]]
+
+  # apply the function to create the new column
+  newColumn <- fun(column1, column2)  
+  
+  # add the new column to the dataframe
+  dataframe[[newColName]] <- newColumn
+  
+  # if (combine) {
+  #   print("Deleting old columns...")
+  #   #dataset <- subset(dataset, select = -c(column1, column2))
+  #   dataset <- select(dataset, -c(column1, column2))
+  # }
+  
+  if (combine) {
+    print("Deleting...")
+    #dataframe <- subset(dataframe, select = -c(column1, column2))
+    dataframe <- dataframe[, -which(names(dataframe) %in% c(colName1, colName2))]
+  }
+  
+  return(dataframe)
+}
+
+# Function to resample a dataframe in the case that a given class is imbalanced.
+# Inputs:
+# dataframe - the dataframe you want to resample
+# methodUsed - can be either 'both', 'over' or 'under'. Both uses both oversampling and undersampling
+# over refers to oversampling by creating synthetic data for the underrepresented class. this data may not relate to the real world!
+# under refers to undersampling by randomly removing from both classes according to the disparity between them
+# columnName - what column you want rebalance according to, NOTE THE COLUMN MUST HAVE 2 UNIQUE VALUES FOR IT TO WORK ie. Attrition
+# Outputs:
+# the rebalanced dataframe calculated
+
+rebalance <- function(dataframe, methodUsed = "both", columnName) {
+  # Show the imbalance of the selected column, by selecting the counts for each unique value
+  print("Before") # Note there are two prints because R is bipolar and chooses when to break each one
+  print(table(dataframe[columnName])) # 1233 Nos to 237 Yes for Attrition
+  #print(table(dataframe$columnName))
+  
+  # Setting as global variable so that ovun.sample can see it (dont ask me why)
+  columnName <<- columnName
+  
+  dataframe <<- dataframe
+  
+  # Converts the column name from a string into a formula that can be used by ovun sample to select according to
+  formula <- as.formula(paste(columnName, "~ ."))
+  
+  # Uses different sampling according to the methodUsed. You can adjust the probability of a row being selected by adjusting p.
+  if (methodUsed == "both") {
+    print("Using both undersampling and oversampling")
+    rebalanced <- ovun.sample(formula, data = dataframe, N=nrow(dataframe), p=0.5, seed = 1, method = "both")$data
+  }
+  else if (methodUsed == "under"){
+    print("Using Undersampling")
+    rebalanced <- ovun.sample(formula, data = dataframe, p=0.5, seed = 1, method = "under")$data
+  }
+  else if (methodUsed == "over") {
+    ("Using Oversampling")
+    rebalanced <- ovun.sample(formula, data = dataframe, p=0.5, seed = 1, method = "over")$data
+  }
+  
+  #rebalanced <- ovun.sample(Attrition~., data = dataframe, N=nrow(dataframe), p=0.5, seed = 1, method = "both")$data
+  
+  
+  # Shows the after results of rebalancing
+  print("After")
+  print(table(rebalanced[columnName]))
+  #print(table(rebalanced$columnName))
+  
+  return(rebalanced)
 }
