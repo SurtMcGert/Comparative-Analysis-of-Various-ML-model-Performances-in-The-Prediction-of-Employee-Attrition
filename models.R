@@ -6,15 +6,14 @@
 # testing_data - data frame - the data to evaluate the model on
 # formula - R formula object - formula for model to use
 ModelHarry<-function(training_data, testing_data, formula){
-  # Example model
-  logisticModel<-stats::glm(formula,data=training_data,family=quasibinomial)
-  predictions<-predict(logisticModel, testing_data, type="response")
-  
+  predictions <- list()
   return(predictions)
 }
 
 ModelChris<-function(training_data, testing_data, formula){
-  predictions <- list()
+  logisticModel<-stats::glm(formula,data=training_data,family=quasibinomial)
+  predictions<-predict(logisticModel, testing_data, type="response")
+  
   return(predictions)
 }
 
