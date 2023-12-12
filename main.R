@@ -65,7 +65,8 @@ LIBRARIES<-c("outliers",
                "tidyverse",
                 "reshape2",
              "car",
-             "neuralnet")
+             "neuralnet",
+             "e1071")
 
 
 
@@ -95,18 +96,18 @@ displayPerformance<-function(probs,testing_data, name){
       bestResults["threshold"] = threshold
       bestAccuracy = results["accuracy"]
     }
-    toPlot<-rbind(toPlot,data.frame(x=threshold,fpr=results$FPR,tpr=results$TPR,accuracy=results$accuracy))
+    toPlot<-rbind(toPlot,data.frame(x=threshold,precision=results$pgood,recall=results$TPR,accuracy=results$accuracy,fpr=results$FPR))
   }
   
-  toPlot$youdan<-toPlot$tpr+(1-toPlot$fpr)-1
+  toPlot$youdan<-toPlot$recall+(1-toPlot$fpr)-1
   
   maxYoudan<-toPlot$x[which.max(toPlot$youdan)]
   
-  toPlot$distance<-sqrt(((100-toPlot$tpr)^2)+(toPlot$fpr^2))
+  toPlot$distance<-sqrt(((100-toPlot$recall)^2)+(toPlot$fpr^2))
   
   minEuclidean<-toPlot$x[which.min(toPlot$distance)]
   
-  printMeasures(bestResults, name)
+  printMeasures(bestResults, paste(name, " (best results)"))
   
   # melt the data into long data
   toPlot <- melt(toPlot, id.var=1)

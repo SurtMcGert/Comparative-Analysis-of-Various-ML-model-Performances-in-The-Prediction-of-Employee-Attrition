@@ -472,13 +472,13 @@ calculateMeasures<-function(TP,FN,FP,TN){
                   "FN"=FN,
                   "TN"=TN,
                   "FP"=FP,
-                  "accuracy"=100.0*((TP+TN)/(TP+FP+FN+TN)),
-                  "pgood"=   100.0*(TP/(TP+FP)),
-                  "pbad"=    100.0*(TN/(FN+TN)),
-                  "FPR"=     100.0*(FP/(FP+TN)),
-                  "TPR"=     100.0*(TP/(TP+FN)),
-                  "TNR"=     100.0*(TN/(FP+TN)),
-                  "MCC"=     ((TP*TN)-(FP*FN))/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+                  "accuracy"=   100.0*((TP+TN)/(TP+FP+FN+TN)),
+                  "pgood"=      100.0*(TP/(TP+FP)),
+                  "pbad"=       100.0*(TN/(FN+TN)),
+                  "FPR"=        100.0*(FP/(FP+TN)),
+                  "TPR"=        100.0*(TP/(TP+FN)),
+                  "TNR"=        100.0*(TN/(FP+TN)),
+                  "MCC"=        ((TP*TN)-(FP*FN))/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
   )
   return(retList)
 }
