@@ -73,7 +73,8 @@ LIBRARIES<-c("outliers",
                "tidyverse",
                 "reshape2",
              "car",
-             "ROSE")
+             "ROSE",
+             "caret")
 
 
 
@@ -209,7 +210,7 @@ Model<-function(training_data,testing_data){
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
     ModelAnna(training_data, testing_data, formular),
-    ModelMelric(training_data, testing_data, formular),
+    ModelMelric(training_data, testing_data),
     ModelZion(training_data, testing_data, formular)
   )
   
@@ -311,7 +312,7 @@ main<-function(){
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
   
-  View(combinedML)
+  # View(combinedML)
   
   # the dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
@@ -326,9 +327,8 @@ main<-function(){
   # Puts the two training and testing splits into a list
   splitList <- splitDataset(combinedML)
   
-  # Calling a model
-  #Model(training_data = splitList$train, testing_data = splitList$test)
-  
+  # Calling models
+  Model(training_data = splitList$train, testing_data = splitList$test)
   
 }
 
