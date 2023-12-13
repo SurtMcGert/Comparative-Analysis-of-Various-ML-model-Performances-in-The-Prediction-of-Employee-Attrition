@@ -76,7 +76,8 @@ LIBRARIES<-c("outliers",
              "caret",
              "neuralnet",
              "e1071",
-             "ROSE")
+             "ROSE",
+             "C50")
 
 
 
