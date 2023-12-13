@@ -73,8 +73,11 @@ LIBRARIES<-c("outliers",
                "tidyverse",
                 "reshape2",
              "car",
-             "ROSE",
-             "caret")
+             "caret",
+             "neuralnet",
+             "e1071",
+             "ROSE")
+
 
 
 
@@ -101,20 +104,21 @@ displayPerformance<-function(probs,testing_data, name){
     results<-evaluate(probs=probs,testing_data=testing_data,threshold=threshold)
     if(as.numeric(results["accuracy"]) > as.numeric(bestAccuracy)){
       bestResults = results
+      bestResults["threshold"] = threshold
       bestAccuracy = results["accuracy"]
     }
-    toPlot<-rbind(toPlot,data.frame(x=threshold,fpr=results$FPR,tpr=results$TPR))
+    toPlot<-rbind(toPlot,data.frame(x=threshold,precision=results$pgood,recall=results$TPR,accuracy=results$accuracy,fpr=results$FPR))
   }
   
-  toPlot$youdan<-toPlot$tpr+(1-toPlot$fpr)-1
+  toPlot$youdan<-toPlot$recall+(1-toPlot$fpr)-1
   
   maxYoudan<-toPlot$x[which.max(toPlot$youdan)]
   
-  toPlot$distance<-sqrt(((100-toPlot$tpr)^2)+(toPlot$fpr^2))
+  toPlot$distance<-sqrt(((100-toPlot$recall)^2)+(toPlot$fpr^2))
   
   minEuclidean<-toPlot$x[which.min(toPlot$distance)]
   
-  printMeasures(bestResults, name)
+  printMeasures(bestResults, paste(name, " (best results)"))
   
   # melt the data into long data
   toPlot <- melt(toPlot, id.var=1)
@@ -132,7 +136,7 @@ displayPerformance<-function(probs,testing_data, name){
     geom_vline(aes(xintercept = max), color="green")+ # draw a green vertical line at the maximum of each metric
     facet_wrap(~variable)+ # put the data for each variable in its own box
     theme_bw()+ # the black and white theme
-    labs(title = name) # set the title of the plot
+    labs(x = "threshold", title = name) # set the title of the plot
   )
 }
 
@@ -199,7 +203,7 @@ modelFormula<-function(dataset, fieldNameOutput, fields=list()){
 # inputs:
 # training_data - data frame - the data to train the model on
 # testing_data - data frame - the data to evaluate the model on
-Model<-function(training_data,testing_data){
+Model<-function(training_data,testing_data, plot_heading){
   # call the formula function
   formular<-modelFormula(dataset=training_data,fieldNameOutput=OUTPUT_FIELD)
   
@@ -221,8 +225,10 @@ Model<-function(training_data,testing_data){
     probabilities <- predictions[[i]]
     print(paste(name))
     if(length(probabilities) > 0){
+      name = paste(predictionNames[i], "/")
+      name = paste(name, plot_heading)
       results<-evaluate(probs=probabilities, testing_data=testing_data, threshold=threshold)
-      results<-displayPerformance(probs=probabilities,testing_data=testing_data, name=predictionNames[i])
+      results<-displayPerformance(probs=probabilities,testing_data=testing_data, name=name)
     }
   }
 }
@@ -285,6 +291,8 @@ main<-function(){
   print("Results")
   print(results)
   
+  
+  # pre processing first dataset
   print("encoding continuous data")
   continuous<-as.data.frame(dataset[which(field_types==TYPE_CONTINUOUS)])
   continuous<-removeOutliers(continuous=continuous,confidence=OUTLIER_CONF)
@@ -322,13 +330,16 @@ main<-function(){
   # Randomise the entire data set
   combinedML<-combinedML[sample(nrow(combinedML)),]
   
-  # Use combinedML to split the dataset into a training, testing split at 70-30 split
-  
   # Puts the two training and testing splits into a list
   splitList <- splitDataset(combinedML)
   
   # Calling models
-  Model(training_data = splitList$train, testing_data = splitList$test)
+  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "first dataset")
+
+  
+  #pre processing second dataset
+  #TODO PROCESS A SECOND DATASET
+
   
 }
 
