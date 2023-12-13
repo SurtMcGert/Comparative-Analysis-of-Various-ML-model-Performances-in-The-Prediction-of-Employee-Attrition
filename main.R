@@ -73,9 +73,11 @@ LIBRARIES<-c("outliers",
                "tidyverse",
                 "reshape2",
              "car",
+             "caret",
              "neuralnet",
              "e1071",
-             "ROSE")
+             "ROSE",
+             "C50")
 
 
 
@@ -213,7 +215,7 @@ Model<-function(training_data,testing_data, plot_heading){
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
     ModelAnna(training_data, testing_data, formular),
-    ModelMelric(training_data, testing_data, formular),
+    ModelMelric(training_data, testing_data),
     ModelZion(training_data, testing_data, formular)
   )
   
@@ -319,7 +321,7 @@ main<-function(){
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
   
-  View(combinedML)
+  # View(combinedML)
   
   # the dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
@@ -329,13 +331,12 @@ main<-function(){
   # Randomise the entire data set
   combinedML<-combinedML[sample(nrow(combinedML)),]
   
-  # Use combinedML to split the dataset into a training, testing split at 70-30 split
-  
   # Puts the two training and testing splits into a list
   splitList <- splitDataset(combinedML)
   
-  
-  Model(training_data = training_data, testing_data = testing_data, plot_heading = "first dataset")
+  # Calling models
+  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "first dataset")
+
   
   #pre processing second dataset
   #TODO PROCESS A SECOND DATASET
