@@ -8,6 +8,7 @@
 ModelHarry<-function(training_data, testing_data, formula){
   # neural network
   numOfInputs = length(all.vars(update(formula, z ~.))) - 1
+  print(paste("number of Inputs: ", numOfInputs))
   layers = c(400, 150, 10)
   print(paste(layers))
   nn=neuralnet(formula,data=training_data, hidden=layers,act.fct = "logistic", linear.output = FALSE)
@@ -95,6 +96,5 @@ ModelZion<-function(training_data, testing_data, formula){
 }
 
 debugSource("dataprep.R")
-library("C50")
 
 
