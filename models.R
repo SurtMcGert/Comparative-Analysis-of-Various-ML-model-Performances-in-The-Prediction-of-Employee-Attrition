@@ -15,33 +15,64 @@ ModelChris<-function(training_data, testing_data, formula){
   return(predictions)
 }
 
-ModelAnna<-function(training_data, testing_data, FOREST_SIZE, OUTPUT_FIELD, plot=TRUE){
-  
-  myTitle<-(paste("Preprocessed Dataset. Random Forest=",FOREST_SIZE,"trees"))
+ModelAnna<-function(training_data, testing_data, ENSEMBLE_SIZE, FOREST_SIZE, OUTPUT_FIELD, plot=TRUE){
+  # Try multiple models and then aggregate their predictions.
+  # I train multiple models with different subsets of data and different hyperparameters
+  myTitle<-paste("Ensamble of Random Forests (Size=",ENSEMBLE_SIZE, "Trees=", FOREST_SIZE,")")
   print(myTitle)
-  
   positionClassOutput<-which(names(training_data)==OUTPUT_FIELD)
   
+  forest_list <- list()
+  
+  # Train random forest models
+  for (i in 1:ENSEMBLE_SIZE) {
+    sampled_indices <- sample(1:nrow(training_data), replace = TRUE)
+    sampled_data <- training_data[sampled_indices, ]
+    
+    train_inputs <- sampled_data[-positionClassOutput]
+    print(ncol(train_inputs))
+    
+    train_expected <- sampled_data[, positionClassOutput]
+    rf <- randomForest::randomForest(train_inputs,
+                                     factor(train_expected),
+                                     ntree = FOREST_SIZE,
+                                     importance = TRUE,
+                                     mtry = sqrt(ncol(train_inputs)),
+                                     nodesize=5)
+    
+    # Add each trained model to the list
+    forest_list[[i]] <- rf
+  }
+  
   # train data: dataframe with the input fields
-  train_inputs<-training_data[-positionClassOutput]
+  # train_inputs<-training_data[-positionClassOutput]
   
   # train data: vector with the expedcted output
-  train_expected<-training_data[,positionClassOutput]
+  # train_expected<-training_data[,positionClassOutput]
   
-  rf<-randomForest::randomForest(train_inputs,
-                                 factor(train_expected),
-                                 ntree=FOREST_SIZE ,
-                                 importance=TRUE,
-                                 mtry=sqrt(ncol(train_inputs)))
+  # rf<-randomForest::randomForest(train_inputs,
+  #                                factor(train_expected),
+  #                                ntree=FOREST_SIZE ,
+  #                                importance=TRUE,
+  #                                mtry=sqrt(ncol(train_inputs)))
   
   
   # ************************************************
   # Use the created decision tree with the test dataset
-  measures<-getTreeClassifications(myTree = rf,
-                                   testDataset = testing_data,
-                                   title=myTitle,
-                                   plot=plot,
-                                   OUTPUT_FIELD=OUTPUT_FIELD)
+  # measures<-getTreeClassifications(myTree = rf,
+  #                                  testDataset = testing_data,
+  #                                  title=myTitle,
+  #                                  plot=plot,
+  #                                  OUTPUT_FIELD=OUTPUT_FIELD)
+  
+  test_predictedProbs <- matrix(0, nrow = nrow(testing_data), ncol = ENSEMBLE_SIZE)
+  for (i in 1:ENSEMBLE_SIZE) {
+    rf <- forest_list[[i]]
+    test_predictedProbs[, i] <- predict(rf, testing_data, type = "prob")[, 2]
+  }
+  
+  # normalize predictions
+  test_predictedProbs <- rowMeans(test_predictedProbs)
   
   if (plot==TRUE){
     # Get importance of the input fields
@@ -57,7 +88,8 @@ ModelAnna<-function(training_data, testing_data, FOREST_SIZE, OUTPUT_FIELD, plot
     print(formattable::formattable(data.frame(importance)))
   }
   
-  return(measures)
+  # return(measures)
+  return(test_predictedProbs)
 }
 
 ModelMelric<-function(training_data, testing_data, formula){

@@ -213,7 +213,7 @@ Model<-function(training_data,testing_data){
   predictions <- list(
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
-    ModelAnna(training_data, testing_data, FOREST_SIZE, OUTPUT_FIELD),
+    ModelAnna(training_data, testing_data, ENSEMBLE_SIZE=15, FOREST_SIZE=480, OUTPUT_FIELD),
     ModelMelric(training_data, testing_data, formular),
     ModelZion(training_data, testing_data, formular)
   )
@@ -319,7 +319,7 @@ main<-function(){
   Model(training_data = training_data, testing_data = testing_data)
   
   # print("Anna's predictions")
-  # results <- ModelAnna(training_data, testing_data, FOREST_SIZE, OUTPUT_FIELD)
+  # results <- ModelAnna(training_data, testing_data, ENSEMBLE_SIZE=4, FOREST_SIZE, OUTPUT_FIELD)
   # print(results)
   
 }
