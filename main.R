@@ -51,6 +51,9 @@ TYPE_IGNORE             <- "IGNORE"             # field is not encoded
 DISCRETE_BINS           <- 1                    # Number of empty bins to determine discrete
 MAX_LITERALS            <- 55                   # Maximum number of 1-hot encoding new fields
 
+FOREST_SIZE       <- 1000                 # Number of trees in the forest
+
+
 # ************************************************
 # Define and then load the libraries used in this project
 
@@ -77,9 +80,8 @@ LIBRARIES<-c("outliers",
              "neuralnet",
              "e1071",
              "ROSE",
-             "C50")
-
-
+             "C50",
+              "randomForest")
 
 
 
@@ -214,8 +216,8 @@ Model<-function(training_data,testing_data, plot_heading){
   predictions <- list(
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
-    ModelAnna(training_data, testing_data, formular),
-    ModelMelric(training_data, testing_data),
+    ModelAnna(training_data, testing_data, ENSEMBLE_SIZE=15, FOREST_SIZE=480, OUTPUT_FIELD),
+    ModelMelric(training_data, testing_data, formular),
     ModelZion(training_data, testing_data, formular)
   )
   
