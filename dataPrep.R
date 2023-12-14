@@ -490,13 +490,13 @@ calculateMeasures<-function(TP,FN,FP,TN){
                   "FN"=FN,
                   "TN"=TN,
                   "FP"=FP,
-                  "accuracy"=100.0*((TP+TN)/(TP+FP+FN+TN)),
-                  "pgood"=   100.0*(TP/(TP+FP)),
-                  "pbad"=    100.0*(TN/(FN+TN)),
-                  "FPR"=     100.0*(FP/(FP+TN)),
-                  "TPR"=     100.0*(TP/(TP+FN)),
-                  "TNR"=     100.0*(TN/(FP+TN)),
-                  "MCC"=     ((TP*TN)-(FP*FN))/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+                  "accuracy"=   100.0*((TP+TN)/(TP+FP+FN+TN)),
+                  "pgood"=      100.0*(TP/(TP+FP)),
+                  "pbad"=       100.0*(TN/(FN+TN)),
+                  "FPR"=        100.0*(FP/(FP+TN)),
+                  "TPR"=        100.0*(TP/(TP+FN)),
+                  "TNR"=        100.0*(TN/(FP+TN)),
+                  "MCC"=        ((TP*TN)-(FP*FN))/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
   )
   return(retList)
 }
@@ -673,6 +673,9 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
 # inputs:
 # column name 1, column name 2, the expression to apply to the columns, 
 # dataframe and name of the new column
+# fun: function to apply to the two input columns
+# newColName: The name of the new column that will be created
+# combine: set to true to remove the two input columns after the new column has been created
 combineOrDeriveFields <- function(dataframe, colName1, colName2, fun, newColName, combine = FALSE) {
 
   column1 <- dataframe[[colName1]]
@@ -697,4 +700,53 @@ combineOrDeriveFields <- function(dataframe, colName1, colName2, fun, newColName
   }
   
   return(dataframe)
+}
+
+# Function to resample a dataframe in the case that a given class is imbalanced.
+# Inputs:
+# dataframe - the dataframe you want to resample
+# methodUsed - can be either 'both', 'over' or 'under'. Both uses both oversampling and undersampling
+# over refers to oversampling by creating synthetic data for the underrepresented class. this data may not relate to the real world!
+# under refers to undersampling by randomly removing from both classes according to the disparity between them
+# columnName - what column you want rebalance according to, NOTE THE COLUMN MUST HAVE 2 UNIQUE VALUES FOR IT TO WORK ie. Attrition
+# Outputs:
+# the rebalanced dataframe calculated
+
+rebalance <- function(dataframe, methodUsed = "both", columnName) {
+  # Show the imbalance of the selected column, by selecting the counts for each unique value
+  print("Before") # Note there are two prints because R is bipolar and chooses when to break each one
+  print(table(dataframe[columnName])) # 1233 Nos to 237 Yes for Attrition
+  #print(table(dataframe$columnName))
+  
+  # Setting as global variable so that ovun.sample can see it (dont ask me why)
+  columnName <<- columnName
+  
+  dataframe <<- dataframe
+  
+  # Converts the column name from a string into a formula that can be used by ovun sample to select according to
+  formula <- as.formula(paste(columnName, "~ ."))
+  
+  # Uses different sampling according to the methodUsed. You can adjust the probability of a row being selected by adjusting p.
+  if (methodUsed == "both") {
+    print("Using both undersampling and oversampling")
+    rebalanced <- ovun.sample(formula, data = dataframe, N=nrow(dataframe), p=0.5, seed = 1, method = "both")$data
+  }
+  else if (methodUsed == "under"){
+    print("Using Undersampling")
+    rebalanced <- ovun.sample(formula, data = dataframe, p=0.5, seed = 1, method = "under")$data
+  }
+  else if (methodUsed == "over") {
+    ("Using Oversampling")
+    rebalanced <- ovun.sample(formula, data = dataframe, p=0.5, seed = 1, method = "over")$data
+  }
+  
+  #rebalanced <- ovun.sample(Attrition~., data = dataframe, N=nrow(dataframe), p=0.5, seed = 1, method = "both")$data
+  
+  
+  # Shows the after results of rebalancing
+  print("After")
+  print(table(rebalanced[columnName]))
+  #print(table(rebalanced$columnName))
+  
+  return(rebalanced)
 }

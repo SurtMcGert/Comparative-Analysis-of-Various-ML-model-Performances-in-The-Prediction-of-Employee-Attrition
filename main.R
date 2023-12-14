@@ -33,7 +33,8 @@ CONTINUOUS_FIELDS       <- list("XUFEFFAge",
                                 "TrainingTimesLastYear",
                                 "YearsAtCompany",
                                 "YearsInCurrentRole",
-                                "YearsSinceLastPromotion") # the list of fields that should be overriden as continuous
+                                "YearsSinceLastPromotion",
+                                "AgeJoined") # the list of fields that should be overriden as continuous
 
 HOLDOUT                 <- 70                   # % split to create TRAIN dataset
 
@@ -75,11 +76,12 @@ LIBRARIES<-c("outliers",
                "tidyverse",
                 "reshape2",
              "car",
-             "C50",
-             "randomForest",
+             "caret",
+             "neuralnet",
+             "e1071",
              "ROSE",
-             "caret")
-
+             "C50",
+              "randomForest")
 
 
 
@@ -105,20 +107,21 @@ displayPerformance<-function(probs,testing_data, name){
     results<-evaluate(probs=probs,testing_data=testing_data,threshold=threshold)
     if(as.numeric(results["accuracy"]) > as.numeric(bestAccuracy)){
       bestResults = results
+      bestResults["threshold"] = threshold
       bestAccuracy = results["accuracy"]
     }
-    toPlot<-rbind(toPlot,data.frame(x=threshold,fpr=results$FPR,tpr=results$TPR))
+    toPlot<-rbind(toPlot,data.frame(x=threshold,precision=results$pgood,recall=results$TPR,accuracy=results$accuracy,fpr=results$FPR))
   }
   
-  toPlot$youdan<-toPlot$tpr+(1-toPlot$fpr)-1
+  toPlot$youdan<-toPlot$recall+(1-toPlot$fpr)-1
   
   maxYoudan<-toPlot$x[which.max(toPlot$youdan)]
   
-  toPlot$distance<-sqrt(((100-toPlot$tpr)^2)+(toPlot$fpr^2))
+  toPlot$distance<-sqrt(((100-toPlot$recall)^2)+(toPlot$fpr^2))
   
   minEuclidean<-toPlot$x[which.min(toPlot$distance)]
   
-  printMeasures(bestResults, name)
+  printMeasures(bestResults, paste(name, " (best results)"))
   
   # melt the data into long data
   toPlot <- melt(toPlot, id.var=1)
@@ -136,7 +139,7 @@ displayPerformance<-function(probs,testing_data, name){
     geom_vline(aes(xintercept = max), color="green")+ # draw a green vertical line at the maximum of each metric
     facet_wrap(~variable)+ # put the data for each variable in its own box
     theme_bw()+ # the black and white theme
-    labs(title = name) # set the title of the plot
+    labs(x = "threshold", title = name) # set the title of the plot
   )
 }
 
@@ -203,7 +206,7 @@ modelFormula<-function(dataset, fieldNameOutput, fields=list()){
 # inputs:
 # training_data - data frame - the data to train the model on
 # testing_data - data frame - the data to evaluate the model on
-Model<-function(training_data,testing_data){
+Model<-function(training_data,testing_data, plot_heading){
   # call the formula function
   formular<-modelFormula(dataset=training_data,fieldNameOutput=OUTPUT_FIELD)
   
@@ -225,8 +228,10 @@ Model<-function(training_data,testing_data){
     probabilities <- predictions[[i]]
     print(paste(name))
     if(length(probabilities) > 0){
+      name = paste(predictionNames[i], "/")
+      name = paste(name, plot_heading)
       results<-evaluate(probs=probabilities, testing_data=testing_data, threshold=threshold)
-      results<-displayPerformance(probs=probabilities,testing_data=testing_data, name=predictionNames[i])
+      results<-displayPerformance(probs=probabilities,testing_data=testing_data, name=name)
     }
   }
 }
@@ -252,6 +257,15 @@ main<-function(){
     return(results)
   }
   
+  # Standard subtraction formula used in combineOrDeriveFields
+  # Used in creating AgeJoined created from the employee Age and the years they have worked at the company
+  # Provides insights on how the age that they joined the company may affect their loyalty and work ethic toward the company
+  # Also may provide an interesting trend on attrition
+  subtract <- function(colName1, colName2, dataframe) {
+    results <- colName1 - colName2
+    return(results)
+  }
+  
   # clean data
   dataset <- cleanData(dataset, remove = FIELDS_FOR_REMOVAL)
   
@@ -259,22 +273,29 @@ main<-function(){
   
   # combine fields before removing any
   dataset <- combineOrDeriveFields(dataset, "YearsWithCurrManager", "YearsSinceLastPromotion", divide, "PerformanceWithCurrentManager", TRUE)
+  dataset <- combineOrDeriveFields(dataset, "Age", "YearsAtCompany", subtract, "AgeJoined", FALSE)
   
-  View(dataset)
+  #View(dataset)
+  
+  
+  # Example use of rebalancing a dataset, call this in your model if it needs it as not all models need data rebalancing!
+  # dataset <- rebalance(dataset, methodUsed = "both", "Attrition")
   
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
   print(field_types)
  
   # plot our data
-  #plotData(dataset, OUTPUT_FIELD, field_types)
-  #prettyDataset(dataset)
+  plotData(dataset, OUTPUT_FIELD, field_types)
+  prettyDataset(dataset)
   
   results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
   print("Results")
   print(results)
   
+  
+  # pre processing first dataset
   print("encoding continuous data")
   continuous<-as.data.frame(dataset[which(field_types==TYPE_CONTINUOUS)])
   continuous<-removeOutliers(continuous=continuous,confidence=OUTLIER_CONF)
@@ -289,6 +310,7 @@ main<-function(){
   print("encoding non ordered categorical data")
   categoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
+  
   # Combine the two sets of data that are read for ML
   combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
 
@@ -296,10 +318,12 @@ main<-function(){
   print("encoding ordered categorical data")
   orderedCategoricalReadyforML<-encodeOrderedCategorical(dataset=dataset, field_types=field_types)
   
+  # View(orderedCategoricalReadyforML)
+  
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
   
-  View(combinedML)
+  # View(combinedML)
   
   # the dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
@@ -309,18 +333,16 @@ main<-function(){
   # Randomise the entire data set
   combinedML<-combinedML[sample(nrow(combinedML)),]
   
-  # Create a TRAINING dataset using first HOLDOUT% of the records
-  # and the remaining 30% is used as TEST
-  # use ALL fields (columns)
-  training_records<-round(nrow(combinedML)*(HOLDOUT/100))
-  training_data <- combinedML[1:training_records,]
-  testing_data = combinedML[-(1:training_records),]
+  # Puts the two training and testing splits into a list
+  splitList <- splitDataset(combinedML)
   
-  Model(training_data = training_data, testing_data = testing_data)
+  # Calling models
+  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "first dataset")
+
   
-  # print("Anna's predictions")
-  # results <- ModelAnna(training_data, testing_data, ENSEMBLE_SIZE=4, FOREST_SIZE, OUTPUT_FIELD)
-  # print(results)
+  #pre processing second dataset
+  #TODO PROCESS A SECOND DATASET
+
   
 }
 
