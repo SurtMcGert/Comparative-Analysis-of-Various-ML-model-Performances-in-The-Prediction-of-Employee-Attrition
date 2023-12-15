@@ -1,18 +1,31 @@
 # File containing all models - each contributor has their own model
 
-# Function to create a classifier and evaluate
+# Function to create a MLP classifier and SVM and evaluate both
 # inputs:
 # training_data - data frame - the data to train the model on
 # testing_data - data frame - the data to evaluate the model on
 # formula - R formula object - formula for model to use
 ModelHarry<-function(training_data, testing_data, formula){
-  predictions <- list()
-  return(predictions)
+  # neural network
+  numOfInputs = length(all.vars(update(formula, z ~.))) - 1
+  print(paste("number of Inputs: ", numOfInputs))
+  layers = c(60, 10)
+  print(paste(layers))
+  print("training")
+  set.seed(123)
+  nn=neuralnet(formula,data=training_data, stepmax = 8000, lifesign.step = 500, hidden=layers, act.fct="logistic", err.fct="ce", algorithm="backprop", learningrate = 0.01, threshold=5, rep=1, linear.output = FALSE, lifesign = "full")
+  predictions<-predict(nn, testing_data, type="response")
+  
+  # SVM
+  supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
+  svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
+  return(list(predictions, svmPredictions))
 }
 
 ModelChris<-function(training_data, testing_data, formula){
   predictions <- list()
-  return(predictions)
+  svmPredictions <- list()
+  return(list(predictions, svmPredictions))
 }
 
 # Function parameters:
@@ -76,46 +89,9 @@ ModelMelric<-function(training_data, testing_data, formula){
 
 ModelZion<-function(training_data, testing_data, formula){
   predictions <- list()
-  return(predictions)
+  svmPredictions <- list()
+  return(list(predictions, svmPredictions))
 }
 
-
-getTreeClassifications<-function(myTree,
-                                 testDataset,
-                                 title,
-                                 classLabel=1,
-                                 plot=TRUE,
-                                 OUTPUT_FIELD){
-  
-  positionClassOutput=which(names(testDataset)==OUTPUT_FIELD)
-  
-  #test data: dataframe with with just input fields
-  test_inputs<-testDataset[-positionClassOutput]
-  
-  # Generate class membership probabilities
-  # Column 1 is for class 0 (bad loan) and column 2 is for class 1 (good loan)
-  
-  testPredictedClassProbs<-predict(myTree,test_inputs, type="prob")
-  
-  # Get the column index with the class label
-  classIndex<-which(as.numeric(colnames(testPredictedClassProbs))==classLabel)
-  
-  # Get the probabilities for classifying attrition
-  test_predictedProbs<-testPredictedClassProbs[,classIndex]
-  
-  #test data: vector with just the expected output class
-  test_expected<-testDataset[,positionClassOutput]
-  
-  # measures<-NdetermineThreshold(test_expected=test_expected,
-  #                               test_predicted=test_predictedProbs,
-  #                               plot=plot,
-  #                               title=title)
-  
-  # if (plot==TRUE)
-  #   NprintMeasures(results=measures,title=title)
-  # 
-  # return(measures)
-  return(test_predictedProbs)
-} #endof getTreeClassifications()
-debugSource("dataPrep.R")
+debugSource("dataprep.R")
 
