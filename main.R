@@ -278,7 +278,6 @@ main<-function(){
   
   #View(dataset)
   
-  
   # Example use of rebalancing a dataset, call this in your model if it needs it as not all models need data rebalancing!
   # dataset <- rebalance(dataset, methodUsed = "both", "Attrition")
   
