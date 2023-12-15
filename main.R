@@ -39,7 +39,7 @@ CONTINUOUS_FIELDS       <- list("XUFEFFAge",
 HOLDOUT                 <- 70                   # % split to create TRAIN dataset
 
 SCALE_DATASET           <- TRUE                 # Set to true to scale dataset before ML stage
-OUTLIER_CONF            <- 0.95                 # Confidence p-value for outlier detection
+OUTLIER_CONF            <- 0.85                 # Confidence p-value for outlier detection
 
 TYPE_DISCRETE           <- "DISCRETE"           # field is discrete (numeric)
 TYPE_CONTINUOUS         <- "CONTINUOUS"         # field is continuous (numeric)
@@ -133,6 +133,7 @@ displayPerformance<-function(probs,testing_data, name){
     ungroup %>% #ungroup the data
     ggplot(aes(x, value, color = variable))+ # plot x on the x axis and % on the y axis, and give each variable a different colour
     xlim(0, 1)+ # set limits on the x axis
+    ylim(0, 100)+
     geom_point(size = 2, alpha = 0.5)+ # set the point size to 5 and the transparancy of the fill colour to 0.5
     geom_smooth()+ # draw a smooth line over our points
     geom_vline(aes(xintercept = min), color="red")+ # draw a red vertical line at the minimum of each metric
@@ -211,15 +212,17 @@ Model<-function(training_data,testing_data, plot_heading){
   formular<-modelFormula(dataset=training_data,fieldNameOutput=OUTPUT_FIELD)
   
   # Placeholder - change in testing and final implementation
-  predictionNames <- c("harryPredictions", "chrisPredictions", "annaPredictions", "melricPredictions", "zionPredictions")
+  predictionNames <- c("harryMlpPredictions", "harrySvmPredictions", "chrisPredictions", "chrisSvmPredictions", "annaPredictions", "annaSvmPredictions", "melricPredictions", "melricSvmPredictions", "zionPredictions", "zionSvmPredictions")
   
-  predictions <- list(
+  predictions <- c(
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
     ModelAnna(training_data, testing_data, ENSEMBLE_SIZE=15, FOREST_SIZE=480, OUTPUT_FIELD),
     ModelMelric(training_data, testing_data, formular),
     ModelZion(training_data, testing_data, formular)
   )
+  
+  print(length(predictions))
   
   # Evaluate the models
   threshold<-0.7
@@ -278,9 +281,6 @@ main<-function(){
   #View(dataset)
   
   
-  # Example use of rebalancing a dataset, call this in your model if it needs it as not all models need data rebalancing!
-  # dataset <- rebalance(dataset, methodUsed = "both", "Attrition")
-  
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
   print(field_types)
@@ -296,23 +296,28 @@ main<-function(){
   
   
   # pre processing first dataset
+  print("preprocessing first dataset")
   print("encoding continuous data")
   continuous<-as.data.frame(dataset[which(field_types==TYPE_CONTINUOUS)])
-  continuous<-removeOutliers(continuous=continuous,confidence=OUTLIER_CONF)
+  print("removing outliers")
+  continuousWithoutOutliers<-removeOutliers(continuous=continuous,confidence=OUTLIER_CONF)
   
   # z-scale
+  zscaledWithoutOutliers<-as.data.frame(scale(continuousWithoutOutliers,center=TRUE, scale=TRUE))
   zscaled<-as.data.frame(scale(continuous,center=TRUE, scale=TRUE))
   
   # n the chosen classifier, the input values need to be scaled to [0.0,1.0]
+  continuousWithoutOutliersReadyforML<-rescaleDataFrame(zscaledWithoutOutliers)
   continuousReadyforML<-rescaleDataFrame(zscaled)
-  print(continuousReadyforML)
+  print(paste("without outliers", continuousWithoutOutliersReadyforML))
+  print(paste("with outliers",continuousReadyforML))
 
   print("encoding non ordered categorical data")
   categoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
   
   # Combine the two sets of data that are read for ML
-  combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
+  combinedML<-cbind(continuousWithoutOutliersReadyforML,categoricalReadyforML)
 
   # process the ordered categorical fields
   print("encoding ordered categorical data")
@@ -336,13 +341,25 @@ main<-function(){
   # Puts the two training and testing splits into a list
   splitList <- splitDataset(combinedML)
   
+  # balance data
+  splitList$train <- rebalance(splitList$train, "both", "Attrition")
+  
   # Calling models
-  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "first dataset")
-
+  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "first dataset outliers removed")
+  
   
   #pre processing second dataset
-  #TODO PROCESS A SECOND DATASET
-
+  combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
+  # combine the ordered categorical fields that are ready for ML
+  combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
+  # Puts the two training and testing splits into a list
+  splitList <- splitDataset(combinedML)
+  
+  # balance data
+  splitList$train <- rebalance(splitList$train, "both", "Attrition")
+  
+  # Calling models
+  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "first dataset outliers kept")
   
 }
 
