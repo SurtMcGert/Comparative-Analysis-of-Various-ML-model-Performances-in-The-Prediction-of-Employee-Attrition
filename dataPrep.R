@@ -580,6 +580,14 @@ prettyDataset<-function(dataset,...){
       tidyTable$Mean[i]<-round(mean(dataset[,i]),2)
       tidyTable$Min[i]<-round(min(dataset[,i]),2)
       tidyTable$Skew[i]<-round(PerformanceAnalytics::skewness(dataset[,i],method="moment"),2)
+      # add Median and Mode
+      tidyTable$Median[i] <- round(median(dataset[, i]), 2)
+      
+      get_mode <- function(v) {
+        uniqv <- unique(v)
+        uniqv[which.max(tabulate(match(v, uniqv)))]
+      }
+      tidyTable$Mode[i] <- get_mode(dataset[, i])
     }
   }
 

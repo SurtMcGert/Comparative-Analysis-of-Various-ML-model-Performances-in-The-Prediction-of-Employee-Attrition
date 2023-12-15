@@ -81,7 +81,8 @@ LIBRARIES<-c("outliers",
              "e1071",
              "ROSE",
              "C50",
-              "randomForest")
+              "randomForest",
+             "mlbench")
 
 
 
@@ -217,8 +218,8 @@ Model<-function(training_data,testing_data, plot_heading){
   predictions <- c(
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
-    ModelAnna(training_data, testing_data, ENSEMBLE_SIZE=15, FOREST_SIZE=480, OUTPUT_FIELD),
-    ModelMelric(training_data, testing_data, formular),
+    ModelAnna(training_data, testing_data, OUTPUT_FIELD),
+    ModelMelric(training_data, testing_data),
     ModelZion(training_data, testing_data, formular)
   )
   
@@ -279,7 +280,6 @@ main<-function(){
   dataset <- combineOrDeriveFields(dataset, "Age", "YearsAtCompany", subtract, "AgeJoined", FALSE)
   
   #View(dataset)
-  
   
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
