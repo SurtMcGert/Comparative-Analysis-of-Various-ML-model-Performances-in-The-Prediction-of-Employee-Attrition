@@ -21,8 +21,16 @@ ModelHarry<-function(training_data, testing_data, formula){
 }
 
 ModelChris<-function(training_data, testing_data, formula){
-  logisticModel<-stats::glm(formula,data=training_data,family=quasibinomial)
-  predictions<-predict(logisticModel, testing_data, type="response")
+  print("Running Chris model")
+  
+  # Cross-validation model
+  cv_model <- cv.glmnet(x = as.matrix(training_data), y = training_data$Attrition)
+  # Select best lambda
+  best_lambda <- cv_model$lambda.min
+  # Re-train using best lambda
+  logisticModel <- glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", lambda = best_lambda, alpha = 1)
+  
+  predictions <- predict(object = logisticModel, newx = as.matrix(testing_data), type="response", s = best_lambda)
   
   return(predictions)
 }
@@ -67,10 +75,10 @@ ModelMelric<-function(training_data, testing_data){
   # predictionsAsProbability <- predict(basicTree, testingFields)
   
   classLabel <- 1
-
+  
   # Pulls out a single column from the two lists of probabilities for each class
   classIndex<-which(as.numeric(colnames(predictionsAsProbability))==classLabel)
-
+  
   # Gets the predictions for the other column and returns back to the caller
   test_predictedProbs <-predictionsAsProbability[,classIndex]
   
@@ -89,7 +97,6 @@ ModelMelric<-function(training_data, testing_data){
   
   return(test_predictedProbs)
 }
-
 
 
 ModelZion<-function(training_data, testing_data, formula){
