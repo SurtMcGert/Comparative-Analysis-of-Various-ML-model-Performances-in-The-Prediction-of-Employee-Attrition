@@ -81,7 +81,8 @@ LIBRARIES<-c("outliers",
              "e1071",
              "ROSE",
              "C50",
-              "randomForest")
+              "randomForest",
+             "mlbench")
 
 
 
@@ -216,8 +217,8 @@ Model<-function(training_data,testing_data, plot_heading){
   predictions <- list(
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
-    ModelAnna(training_data, testing_data, ENSEMBLE_SIZE=15, FOREST_SIZE=480, OUTPUT_FIELD),
-    ModelMelric(training_data, testing_data, formular),
+    ModelAnna(training_data, testing_data, OUTPUT_FIELD),
+    ModelMelric(training_data, testing_data),
     ModelZion(training_data, testing_data, formular)
   )
   

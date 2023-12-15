@@ -6,19 +6,7 @@
 # testing_data - data frame - the data to evaluate the model on
 # formula - R formula object - formula for model to use
 ModelHarry<-function(training_data, testing_data, formula){
-
-  # neural network
-  numOfInputs = length(all.vars(update(formula, z ~.))) - 1
-  print(paste("number of Inputs: ", numOfInputs))
-  layers = c(400, 150, 10)
-  print(paste(layers))
-  nn=neuralnet(formula,data=training_data, hidden=layers,act.fct = "logistic", linear.output = FALSE)
-  predictions<-predict(nn, testing_data, type="response")
-  
-  # SVM
-  # supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
-  # predictions<-predict(supportVectorMachine, testing_data, type="response")
-
+  predictions <- list()
   return(predictions)
 }
 
@@ -27,148 +15,193 @@ ModelChris<-function(training_data, testing_data, formula){
   return(predictions)
 }
 
-ModelAnna<-function(training_data, testing_data, ENSEMBLE_SIZE, FOREST_SIZE, OUTPUT_FIELD, plot=TRUE){
-  # Try multiple models and then aggregate their predictions.
-  # I train multiple models with different subsets of data and different hyperparameters
-  myTitle<-paste("Ensamble of Random Forests (Size=",ENSEMBLE_SIZE, "Trees=", FOREST_SIZE,")")
-  print(myTitle)
-  positionClassOutput<-which(names(training_data)==OUTPUT_FIELD)
+# Function parameters:
+# - training_data: Training dataset
+# - testing_data: Testing dataset
+# - ENSEMBLE_SIZE: Number of random forests in the ensemble
+# - FOREST_SIZE: Number of trees in each random forest
+# - OUTPUT_FIELD: Name of the output field (target variable) in the dataset
+# - plot: A logical value indicating whether to plot feature importance (default is TRUE)
+# ModelAnna <- function(training_data, testing_data, OUTPUT_FIELD, plot = TRUE) {
+#   # Identify the position of the output field in the dataset
+#   positionClassOutput <- which(names(training_data) == OUTPUT_FIELD)
+#   
+#   # Ensure the target variable is a factor with valid levels
+#   training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
+#   levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
+#   
+#   testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
+#   levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
+#   
+#   # Define the hyperparameter grid for the random forest
+#   param_grid <- expand.grid(
+#     .mtry = c(5 : 7)
+#   )
+#   
+#   # Specify the training control parameters for cross-validation
+#   ctrl <- trainControl(
+#     method = "cv",      # Cross-validation method
+#     number = 5,          # Number of folds
+#     summaryFunction = twoClassSummary,
+#     classProbs = TRUE,
+#     verboseIter = TRUE
+#   )
+#   
+#   # Train the random forest model with grid search
+#   rf_model <- train(
+#     Attrition ~ ., data = training_data,
+#     method = "rf",            # Random Forest method
+#     metric = "logLoss",       # Scoring metric
+#     trControl = ctrl,
+#     tuneGrid = param_grid
+#   )
+#   
+#   best_mtry <- rf_model$bestTune$mtry
+#   
+#   print("best mtry")
+#   print(best_mtry)
+#   
+#   final_rf_model <- randomForest(
+#     Attrition ~ ., data = training_data,
+#     mtry = best_mtry,
+#     ntree = 150
+#   )
+#   
+#   # Make predictions on the testing data of the positive class
+#   # When evaluating model performance it is common practice to 
+#   # extract predicted probabilities for the positive class 
+#   test_predictedProbs <- predict(final_rf_model, newdata = testing_data, type = "prob")[, 2]
+#   
+#   # Plot feature importance if specified
+#   if (plot) {
+#     # Access feature importance from the random forest model
+#     feature_importance <- rf_model$finalModel$importance
+#     
+#     # Plot the feature importance
+#     varImpPlot(rf_model$finalModel, main = "Feature Importance")
+#   }
+#   
+#   # Return the final model predictions
+#   return(test_predictedProbs)
+# }
+
+# ModelAnna <- function(training_data, testing_data, OUTPUT_FIELD, plot = TRUE) {
+#   # Identify the position of the output field in the dataset
+#   positionClassOutput <- which(names(training_data) == OUTPUT_FIELD)
+#   
+#   # Ensure the target variable is a factor with valid levels
+#   training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
+#   levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
+#   
+#   testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
+#   levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
+#   
+#   customRF <- list(type = "Classification", library = "randomForest", loop = NULL)
+#   customRF$parameters <- data.frame(parameter = c("mtry", "ntree"), class = rep("numeric", 2), label = c("mtry", "ntree"))
+#   customRF$grid <- function(x, y, len = NULL, search = "grid") {}
+#   customRF$fit <- function(x, y, wts, param, lev, last, weights, classProbs, ...) {
+#     randomForest(x, y, mtry = param$mtry, ntree=param$ntree, ...)
+#   }
+#   customRF$predict <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
+#     predict(modelFit, newdata)
+#   customRF$prob <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
+#     predict(modelFit, newdata, type = "prob")
+#   customRF$sort <- function(x) x[order(x[,1]),]
+#   customRF$levels <- function(x) x$classes
+#   
+#   # train
+#   metric <- "Accuracy"
+#   control <- trainControl(method="repeatedcv", number=2, repeats=2)
+#   tunegrid <- expand.grid(.mtry=c(1:2), .ntree=c(500, 1000))
+#   set.seed(123)
+#   custom <- train(Attrition~., data = training_data, method=customRF, metric=metric, tuneGrid=tunegrid, trControl=control)
+#   summary(custom)
+#   plot(custom)
+#   
+#   best_params <- custom$bestTune
+#   
+#   best_model <- randomForest(Attrition ~ ., data = training_data, mtry = best_params$mtry, ntree = best_params$ntree)
+#   print("best model")
+#   print(best_model)
+#   # Get prediction probabilities on the testing data
+#   predictions <- predict(best_model, newdata = testing_data, type = "prob")[,2]
+#   
+#   
+#   # Make predictions on the testing data of the positive class
+#   # When evaluating model performance it is common practice to 
+#   # extract predicted probabilities for the positive class 
+#   # Plot feature importance if specified
+#   if (plot) {
+#     # Access feature importance from the random forest model
+#     feature_importance <- best_model$importance
+# 
+#     # Plot the feature importance
+#     varImpPlot(best_model, main = "Feature Importance")
+#   }
+#   
+#   # Return the final model predictions
+#   return(predictions)
+# }
+
+ModelAnna <- function(training_data, testing_data, OUTPUT_FIELD, plot = TRUE) {
+  # Identify the position of the output field in the dataset
+  positionClassOutput <- which(names(training_data) == OUTPUT_FIELD)
   
-  forest_list <- list()
+  # Ensure the target variable is a factor with valid levels
+  training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
+  levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
   
-  # Train random forest models
-  for (i in 1:ENSEMBLE_SIZE) {
-    sampled_indices <- sample(1:nrow(training_data), replace = TRUE)
-    sampled_data <- training_data[sampled_indices, ]
-    
-    train_inputs <- sampled_data[-positionClassOutput]
-    print(ncol(train_inputs))
-    
-    train_expected <- sampled_data[, positionClassOutput]
-    rf <- randomForest::randomForest(train_inputs,
-                                     factor(train_expected),
-                                     ntree = FOREST_SIZE,
-                                     importance = TRUE,
-                                     mtry = sqrt(ncol(train_inputs)),
-                                     nodesize=5)
-    
-    # Add each trained model to the list
-    forest_list[[i]] <- rf
+  testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
+  levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
+  
+  rf <- RFTrainer$new()
+  gst <-GridSearchCV$new(trainer = rf,
+                         parameters = list(n_estimators = c(500, 1000, 1500),
+                                           max_depth = c(1,2,5,10)),
+                         n_folds = 3,
+                         scoring = c('accuracy','auc'))
+  
+  gst$fit(training_data, "Attrition")
+  best_params <- gst$best_iteration()
+  
+  print("best params")
+  print(best_params)
+  
+  n_estimators = best_params$n_estimators
+  max_depth = best_params$max_depth
+  
+  best_model <- randomForest(Attrition ~ ., data = training_data, n_estimators = n_estimators, max_depth = max_depth)
+  print("best model")
+  print(best_model)
+  # Get prediction probabilities on the testing data
+  predictions <- predict(best_model, newdata = testing_data, type = "prob")[,2]
+
+
+  # Make predictions on the testing data of the positive class
+  # When evaluating model performance it is common practice to
+  # extract predicted probabilities for the positive class
+  # Plot feature importance if specified
+  if (plot) {
+    # Access feature importance from the random forest model
+    feature_importance <- best_model$importance
+
+    # Plot the feature importance
+    varImpPlot(best_model, main = "Feature Importance")
   }
-  
-  # train data: dataframe with the input fields
-  # train_inputs<-training_data[-positionClassOutput]
-  
-  # train data: vector with the expedcted output
-  # train_expected<-training_data[,positionClassOutput]
-  
-  # rf<-randomForest::randomForest(train_inputs,
-  #                                factor(train_expected),
-  #                                ntree=FOREST_SIZE ,
-  #                                importance=TRUE,
-  #                                mtry=sqrt(ncol(train_inputs)))
-  
-  
-  # ************************************************
-  # Use the created decision tree with the test dataset
-  # measures<-getTreeClassifications(myTree = rf,
-  #                                  testDataset = testing_data,
-  #                                  title=myTitle,
-  #                                  plot=plot,
-  #                                  OUTPUT_FIELD=OUTPUT_FIELD)
-  
-  test_predictedProbs <- matrix(0, nrow = nrow(testing_data), ncol = ENSEMBLE_SIZE)
-  for (i in 1:ENSEMBLE_SIZE) {
-    rf <- forest_list[[i]]
-    test_predictedProbs[, i] <- predict(rf, testing_data, type = "prob")[, 2]
-  }
-  
-  # normalize predictions
-  test_predictedProbs <- rowMeans(test_predictedProbs)
-  
-  if (plot==TRUE){
-    # Get importance of the input fields
-    importance<-randomForest::importance(rf,scale=TRUE,type=1)
-    importance<-importance[order(importance,decreasing=TRUE),,drop=FALSE]
-    
-    colnames(importance)<-"Strength"
-    
-    barplot(t(importance),las=2, border = 0,
-            cex.names =0.7,
-            main=myTitle)
-    
-    print(formattable::formattable(data.frame(importance)))
-  }
-  
-  # return(measures)
-  return(test_predictedProbs)
+
+  # Return the final model predictions
+  return(predictions)
 }
 
-# Function to create a decision tree of 30 trials with rules applied
-#inputs:
-# training_data - data frame - the data to train the model on
-# testing_data - data frame - the data to evaluate the model on
-#outputs:
-# returns the predictions for the column of class 1
-ModelMelric<-function(training_data, testing_data){
-  # Rebalancing dataset (appears that it is not needed for the model):
-  #training_data <- rebalance(training_data, "both", "Attrition")
-  #testing_data <- rebalance(testing_data, "under", "Attrition")
-  
-  predictedFieldLocationTrain <- which(names(training_data)=="Attrition")
-  trainingFields <- training_data[, -predictedFieldLocationTrain]
-  
-  groundTruth <- factor(training_data[, predictedFieldLocationTrain])
-  
-  # cost_matrix <- matrix(c(0, 1, 1, 15), nrow = 2, dimnames = list(c("0", "1"), c("0", "1")))
-  
-  #basicTree <- C5.0(x = trainingFields, y = groundTruth, trials = 30, rules= TRUE, costs = cost_matrix)
-  basicTree <- C5.0(x = trainingFields, y = groundTruth, trials = 30, rules= TRUE)
-  
-  # print(summary(basicTree))
-  
-  # Performing Evaluation
-  
-  predictedFieldLocationTest <- which(names(testing_data) == "Attrition")
-  testingFields <- testing_data[,-predictedFieldLocationTest]
-  
-  # Predicts using the tree and returns probability for each class
-  # predictionsAsProbability <- testPredictedClassProbs <- predict(basicTree, testingFields, type = "prob")
-  
-  predictionsAsProbability <- predict(basicTree, testingFields, type = "prob")
-  # predictionsAsProbability <- predict(basicTree, testingFields)
-  
-  classLabel <- 1
-
-  # Pulls out a single column from the two lists of probabilities for each class
-  classIndex<-which(as.numeric(colnames(predictionsAsProbability))==classLabel)
-
-  # Gets the predictions for the other column and returns back to the caller
-  test_predictedProbs <-predictionsAsProbability[,classIndex]
-  
-  # class_probs <- table(predictionsAsProbability) / length(predictionsAsProbability)
-  # 
-  # test_predictedProbs <- class_probs["1"]
-  # 
-  # 
-  # conf_matrix <- confusionMatrix(as.factor(predictionsAsProbability), as.factor(testing_data$Attrition))
-  
-  # Print the confusion matrix
-  # print(conf_matrix)
-  
-  #return(predictedLabels)
-  
-  
-  return(test_predictedProbs)
+ModelMelric<-function(training_data, testing_data, formula){
+  predictions <- list()
+  return(predictions)
 }
-
-
 
 ModelZion<-function(training_data, testing_data, formula){
   predictions <- list()
   return(predictions)
 }
-
 
 
 getTreeClassifications<-function(myTree,
@@ -208,6 +241,5 @@ getTreeClassifications<-function(myTree,
   # return(measures)
   return(test_predictedProbs)
 } #endof getTreeClassifications()
-
-debugSource("dataprep.R")
+debugSource("dataPrep.R")
 
