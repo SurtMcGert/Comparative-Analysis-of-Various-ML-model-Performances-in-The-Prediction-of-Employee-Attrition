@@ -89,15 +89,6 @@ getFieldTypes<-function(dataset, continuousFields=list(), orderedFields=list(), 
 
   field_types<-vector()
   for(field in 1:(ncol(dataset))){
-
-    #manual types is always empty so the if statement is never entered
-    #redundant condition
-    # entry<-which(manualTypes$name==names(dataset)[field])
-    # if (length(entry)>0){
-    #   field_types[field]<-manualTypes$type[entry]
-    #   next
-    # }
-
     if (is.numeric(dataset[,field]) && !(names(dataset)[field] %in% orderedFields)) {
       field_types[field]<-TYPE_NUMERIC
     }

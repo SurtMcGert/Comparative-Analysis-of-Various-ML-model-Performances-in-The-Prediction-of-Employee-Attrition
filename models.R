@@ -9,11 +9,12 @@ ModelHarry<-function(training_data, testing_data, formula){
   # neural network
   numOfInputs = length(all.vars(update(formula, z ~.))) - 1
   print(paste("number of Inputs: ", numOfInputs))
-  layers = c(400, 150, 10)
+  layers = c(60, 10)
   print(paste(layers))
-  nn=neuralnet(formula,data=training_data, hidden=layers,act.fct = "logistic", linear.output = FALSE)
+  print("training")
+  set.seed(123)
+  nn=neuralnet(formula,data=training_data, stepmax = 8000, lifesign.step = 500, hidden=layers, act.fct="logistic", err.fct="ce", algorithm="backprop", learningrate = 0.01, threshold=5, rep=1, linear.output = FALSE, lifesign = "full")
   predictions<-predict(nn, testing_data, type="response")
-  
   # SVM
   # supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
   # predictions<-predict(supportVectorMachine, testing_data, type="response")
