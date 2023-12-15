@@ -210,15 +210,17 @@ Model<-function(training_data,testing_data, plot_heading){
   formular<-modelFormula(dataset=training_data,fieldNameOutput=OUTPUT_FIELD)
   
   # Placeholder - change in testing and final implementation
-  predictionNames <- c("harryPredictions", "chrisPredictions", "annaPredictions", "melricPredictions", "zionPredictions")
+  predictionNames <- c("harryMlpPredictions", "harrySvmPredictions", "chrisPredictions", "chrisSvmPredictions", "annaPredictions", "annaSvmPredictions", "melricPredictions", "melricSvmPredictions", "zionPredictions", "zionSvmPredictions")
   
-  predictions <- list(
+  predictions <- c(
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
     ModelAnna(training_data, testing_data, formular),
     ModelMelric(training_data, testing_data),
     ModelZion(training_data, testing_data, formular)
   )
+  
+  print(length(predictions))
   
   # Evaluate the models
   threshold<-0.7

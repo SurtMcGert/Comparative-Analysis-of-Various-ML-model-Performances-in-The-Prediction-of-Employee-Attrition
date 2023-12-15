@@ -16,19 +16,21 @@ ModelHarry<-function(training_data, testing_data, formula){
   nn=neuralnet(formula,data=training_data, stepmax = 8000, lifesign.step = 500, hidden=layers, act.fct="logistic", err.fct="ce", algorithm="backprop", learningrate = 0.01, threshold=5, rep=1, linear.output = FALSE, lifesign = "full")
   predictions<-predict(nn, testing_data, type="response")
   # SVM
-  # supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
-  # predictions<-predict(supportVectorMachine, testing_data, type="response")
-  return(predictions)
+  supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
+  svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
+  return(list(predictions, svmPredictions))
 }
 
 ModelChris<-function(training_data, testing_data, formula){
   predictions <- list()
-  return(predictions)
+  svmPredictions <- list()
+  return(list(predictions, svmPredictions))
 }
 
 ModelAnna<-function(training_data, testing_data, formula){
   predictions <- list()
-  return(predictions)
+  svmPredictions <- list()
+  return(list(predictions, svmPredictions))
 }
 
 # Function to create a decision tree of 30 trials with rules applied
@@ -85,15 +87,18 @@ ModelMelric<-function(training_data, testing_data){
   
   #return(predictedLabels)
   
+  svmPredictions <- list()
   
-  return(test_predictedProbs)
+  
+  return(list(test_predictedProbs, svmPredictions))
 }
 
 
 
 ModelZion<-function(training_data, testing_data, formula){
   predictions <- list()
-  return(predictions)
+  svmPredictions <- list()
+  return(list(predictions, svmPredictions))
 }
 
 debugSource("dataprep.R")
