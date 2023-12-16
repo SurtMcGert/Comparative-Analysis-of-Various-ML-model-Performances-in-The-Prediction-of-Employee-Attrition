@@ -33,58 +33,41 @@ ModelChris<-function(training_data, testing_data, formula){
 # - testing_data: Testing dataset
 # - OUTPUT_FIELD: Name of the output field (target variable) in the dataset
 # - plot: A logical value indicating whether to plot feature importance (default is TRUE)
-ModelAnna <- function(training_data, testing_data, OUTPUT_FIELD, plot = TRUE) {
-  # Position of the output field in the dataset
-  positionClassOutput <- which(names(training_data) == OUTPUT_FIELD)
-  
-  # Make sure the target variable is a factor with valid levels
-  training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
-  levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
-  
-  testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
-  levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
-  
+ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
+  set.seed(123)
+  # RF
   rf <- RFTrainer$new()
   gst <-GridSearchCV$new(trainer = rf,
                          parameters = list(n_estimators = c(500, 1000, 1500),
                                            max_depth = c(1,2,5,10)),
                          n_folds = 3,
                          scoring = c('accuracy','auc'))
-  
   gst$fit(training_data, "Attrition")
   best_params <- gst$best_iteration()
-  
-  print("Best Params")
-  print(best_params)
-  
   n_estimators = best_params$n_estimators
   max_depth = best_params$max_depth
-  
   best_model <- randomForest(Attrition ~ ., data = training_data, n_estimators = n_estimators, max_depth = max_depth)
-  print("best model")
-  print(best_model)
-  
-  # Make predictions on the testing data of the positive class
-  # When evaluating model performance it is common practice to
-  # extract predicted probabilities for the positive class
-  predictions <- predict(best_model, newdata = testing_data, type = "prob")[,2]
+  predictions <- predict(best_model, newdata = testing_data, type = "response")
 
   # Plot feature importance if specified
   if (plot) {
     # Access feature importance from model
     feature_importance <- best_model$importance
-
     # Plot feature importance
     varImpPlot(best_model, main = "Feature Importance")
   }
-
-  # Return the final model predictions
-  return(predictions)
+  
+  # SVM
+  supportVectorMachine = svm(formula, training_data, kernel="linear", probability=TRUE)
+  svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
+  
+  return(list(predictions, svmPredictions))
 }
 
 ModelMelric<-function(training_data, testing_data, formula){
   predictions <- list()
-  return(predictions)
+  predictions2 <- list()
+  return(list(predictions, predictions2))
 }
 
 ModelZion<-function(training_data, testing_data, formula){
