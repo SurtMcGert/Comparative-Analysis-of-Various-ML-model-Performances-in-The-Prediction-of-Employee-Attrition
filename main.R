@@ -71,20 +71,15 @@ LIBRARIES<-c("outliers",
                "stats",
                "PerformanceAnalytics",
                "tidyverse",
-                "reshape2",
-             "car",
-             "caret",
-             "neuralnet",
-             "e1071",
-             "ROSE",
-             "C50")
-
-
-
-
-
-
-
+               "reshape2",
+               "car",
+               "caret",
+               "neuralnet",
+               "e1071",
+               "ROSE",
+               "C50",
+               "dplyr",
+               "glmnet")
 
 # function to generate a plot from a models predictions
 # using a dataset
