@@ -64,7 +64,8 @@ LIBRARIES<-c("outliers",
                "PerformanceAnalytics",
                "tidyverse",
                 "reshape2",
-             "car")
+             "car", 
+             "h2o")
 
 
 

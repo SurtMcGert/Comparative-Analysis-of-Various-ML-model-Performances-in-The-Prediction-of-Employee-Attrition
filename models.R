@@ -29,7 +29,21 @@ ModelMelric<-function(training_data, testing_data, formula){
 }
 
 ModelZion<-function(training_data, testing_data, formula){
-  predictions <- list()
-  return(predictions)
+  h2o.init()
+  training_data$Attrition <- as.factor(training_data$Attrition)
+  inputs <- colnames(training_data[,-2])
+  # print(training_data$attrition)
+  target <- "Attrition"
+  
+  nbModel <- h2o.naiveBayes(x = inputs, y = target, training_frame = as.h2o(training_data), laplace = 0, nfolds = 5, seed = 64)
+  
+  nbPerformance <- h2o.performance(nbModel)
+  
+  print(nbPerformance)
+  
+  predictions <- h2o.predict(nbModel, newdata = as.h2o(testing_data))
+  
+  print(predictions)
+  # return(predictions)
 }
 
