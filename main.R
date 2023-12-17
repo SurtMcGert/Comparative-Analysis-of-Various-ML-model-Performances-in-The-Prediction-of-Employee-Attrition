@@ -12,9 +12,8 @@ FIELDS_FOR_REMOVAL      <- list("DailyRate",
                                 "MaritalStatus", 
                                 "EmployeeNumber", 
                                 "JobInvolvement", 
-                                "PerformanceRating", 
-                                "RelationshipSatisfaction", 
-                                "YearsWithCurrManager", 
+                                "RelationshipSatisfaction",
+                                "PerformanceRating",
                                 "MonthlyIncome", 
                                 "MonthlyRate", 
                                 "PercentSalaryHike", 
@@ -25,13 +24,22 @@ ORDERED_FIELDS          <- list("Education",
                                 "JobSatisfaction", 
                                 "WorkLifeBalance", 
                                 "BusinessTravel") # the list of fields that need marking as ordered symbolic
-CONTINUOUS_FIELDS       <- list("Age", 
-                                "DistanceFromHome") # the list of fields that should be overriden as continuous
+
+CONTINUOUS_FIELDS       <- list("XUFEFFAge", 
+                                "DistanceFromHome",
+                                "PerformanceWithCurrentManager",
+                                "Age",
+                                "TotalWorkingYears",
+                                "TrainingTimesLastYear",
+                                "YearsAtCompany",
+                                "YearsInCurrentRole",
+                                "YearsSinceLastPromotion",
+                                "AgeJoined") # the list of fields that should be overriden as continuous
 
 HOLDOUT                 <- 70                   # % split to create TRAIN dataset
 
 SCALE_DATASET           <- TRUE                 # Set to true to scale dataset before ML stage
-OUTLIER_CONF            <- 0.95                 # Confidence p-value for outlier detection
+OUTLIER_CONF            <- 0.85                 # Confidence p-value for outlier detection
 
 TYPE_DISCRETE           <- "DISCRETE"           # field is discrete (numeric)
 TYPE_CONTINUOUS         <- "CONTINUOUS"         # field is continuous (numeric)
@@ -42,6 +50,9 @@ TYPE_IGNORE             <- "IGNORE"             # field is not encoded
 
 DISCRETE_BINS           <- 1                    # Number of empty bins to determine discrete
 MAX_LITERALS            <- 55                   # Maximum number of 1-hot encoding new fields
+
+FOREST_SIZE       <- 1000                 # Number of trees in the forest
+
 
 # ************************************************
 # Define and then load the libraries used in this project
@@ -63,10 +74,17 @@ LIBRARIES<-c("outliers",
                "stats",
                "PerformanceAnalytics",
                "tidyverse",
-                "reshape2",
-             "car", 
-             "h2o")
-
+                "reshape2", 
+             "h2o",
+             "car",
+             "caret",
+             "neuralnet",
+             "e1071",
+             "ROSE",
+             "C50",
+              "randomForest",
+             "mlbench",
+             "superml")
 
 
 
@@ -92,20 +110,21 @@ displayPerformance<-function(probs,testing_data, name){
     results<-evaluate(probs=probs,testing_data=testing_data,threshold=threshold)
     if(as.numeric(results["accuracy"]) > as.numeric(bestAccuracy)){
       bestResults = results
+      bestResults["threshold"] = threshold
       bestAccuracy = results["accuracy"]
     }
-    toPlot<-rbind(toPlot,data.frame(x=threshold,fpr=results$FPR,tpr=results$TPR))
+    toPlot<-rbind(toPlot,data.frame(x=threshold,precision=results$pgood,recall=results$TPR,accuracy=results$accuracy,fpr=results$FPR))
   }
   
-  toPlot$youdan<-toPlot$tpr+(1-toPlot$fpr)-1
+  toPlot$youdan<-toPlot$recall+(1-toPlot$fpr)-1
   
   maxYoudan<-toPlot$x[which.max(toPlot$youdan)]
   
-  toPlot$distance<-sqrt(((100-toPlot$tpr)^2)+(toPlot$fpr^2))
+  toPlot$distance<-sqrt(((100-toPlot$recall)^2)+(toPlot$fpr^2))
   
   minEuclidean<-toPlot$x[which.min(toPlot$distance)]
   
-  printMeasures(bestResults, name)
+  printMeasures(bestResults, paste(name, " (best results)"))
   
   # melt the data into long data
   toPlot <- melt(toPlot, id.var=1)
@@ -117,13 +136,14 @@ displayPerformance<-function(probs,testing_data, name){
     ungroup %>% #ungroup the data
     ggplot(aes(x, value, color = variable))+ # plot x on the x axis and % on the y axis, and give each variable a different colour
     xlim(0, 1)+ # set limits on the x axis
+    ylim(0, 100)+
     geom_point(size = 2, alpha = 0.5)+ # set the point size to 5 and the transparancy of the fill colour to 0.5
     geom_smooth()+ # draw a smooth line over our points
     geom_vline(aes(xintercept = min), color="red")+ # draw a red vertical line at the minimum of each metric
     geom_vline(aes(xintercept = max), color="green")+ # draw a green vertical line at the maximum of each metric
     facet_wrap(~variable)+ # put the data for each variable in its own box
     theme_bw()+ # the black and white theme
-    labs(title = name) # set the title of the plot
+    labs(x = "threshold", title = name) # set the title of the plot
   )
 }
 
@@ -190,20 +210,22 @@ modelFormula<-function(dataset, fieldNameOutput, fields=list()){
 # inputs:
 # training_data - data frame - the data to train the model on
 # testing_data - data frame - the data to evaluate the model on
-Model<-function(training_data,testing_data){
+Model<-function(training_data,testing_data, plot_heading){
   # call the formula function
   formular<-modelFormula(dataset=training_data,fieldNameOutput=OUTPUT_FIELD)
   
   # Placeholder - change in testing and final implementation
-  predictionNames <- c("harryPredictions", "chrisPredictions", "annaPredictions", "melricPredictions", "zionPredictions")
+  predictionNames <- c("harryMlpPredictions", "harrySvmPredictions", "chrisPredictions", "chrisSvmPredictions", "annaPredictions", "annaSvmPredictions", "melricPredictions", "melricSvmPredictions", "zionPredictions", "zionSvmPredictions")
   
-  predictions <- list(
+  predictions <- c(
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
     ModelAnna(training_data, testing_data, formular),
-    ModelMelric(training_data, testing_data, formular),
+    ModelMelric(training_data, testing_data),
     ModelZion(training_data, testing_data, formular)
   )
+  
+  print(length(predictions))
   
   # Evaluate the models
   threshold<-0.7
@@ -212,8 +234,10 @@ Model<-function(training_data,testing_data){
     probabilities <- predictions[[i]]
     print(paste(name))
     if(length(probabilities) > 0){
+      name = paste(predictionNames[i], "/")
+      name = paste(name, plot_heading)
       results<-evaluate(probs=probabilities, testing_data=testing_data, threshold=threshold)
-      results<-displayPerformance(probs=probabilities,testing_data=testing_data, name=predictionNames[i])
+      results<-displayPerformance(probs=probabilities,testing_data=testing_data, name=name)
     }
   }
 }
@@ -225,47 +249,101 @@ main<-function(){
   
   print(paste("using dataset: ", DATASET_FILENAME))
 
-
   # read the dataset
   dataset<-readDataset(DATASET_FILENAME)
+  
+  # formula to divide two columns and obtain a ratio
+  # to understand the average time between promotions relative to the time spent with the current manager.
+  # this ratio could provide insights into the frequency of promotions in relation to the duration of the 
+  # current managerial relationship. For example, a higher ratio might suggest that employees tend to receive 
+  # promotions more frequently in comparison to the time they spend with their current manager.
+  divide <- function(val1, val2, threshold = 1) {
+    epsilon <- 1e-10
+    
+    # Check if the value in val2 is below the threshold
+    if (val2 < threshold) {
+      # Handle cases where there is limited time with the current manager
+      return(NA)  # You can choose a special value or handle it differently
+    }
+    
+    # Calculate the performance ratio
+    result <- (val1 + epsilon) / (val2 + epsilon)
+    
+    return(result)
+  }
+  
+  # Standard subtraction formula used in combineOrDeriveFields
+  # Used in creating AgeJoined created from the employee Age and the years they have worked at the company
+  # Provides insights on how the age that they joined the company may affect their loyalty and work ethic toward the company
+  # Also may provide an interesting trend on attrition
+  subtract <- function(colName1, colName2, dataframe) {
+    results <- colName1 - colName2
+    return(results)
+  }
+  
+  # clean data
   dataset <- cleanData(dataset, remove = FIELDS_FOR_REMOVAL)
+  
+  #View(dataset)
+  
+  # combine fields before removing any
+  dataset <- combineOrDeriveFields(dataset, "YearsSinceLastPromotion", "YearsWithCurrManager", divide, "PerformanceWithCurrentManager", TRUE, threshold = 1)
+  dataset <- combineOrDeriveFields(dataset, "Age", "YearsAtCompany", subtract, "AgeJoined", FALSE)
+  
+  dataset$PerformanceWithCurrentManager[is.na(dataset$PerformanceWithCurrentManager)] <- mean(dataset$PerformanceWithCurrentManager, na.rm = TRUE)
+  
+  View(dataset)
+  
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
-  
-  
-  #plot our data
+  print(field_types)
+ 
+  # plot our data
   plotData(dataset, OUTPUT_FIELD, field_types)
   prettyDataset(dataset)
   
-  
   results<-data.frame(field=names(dataset),type=field_types)
   print(formattable::formattable(results))
+  print("Results")
+  print(results)
   
+  
+  # pre processing first dataset
+  print("preprocessing first dataset")
   print("encoding continuous data")
   continuous<-as.data.frame(dataset[which(field_types==TYPE_CONTINUOUS)])
-  continuous<-removeOutliers(continuous=continuous,confidence=OUTLIER_CONF)
+  print("removing outliers")
+  continuousWithoutOutliers<-removeOutliers(continuous=continuous,confidence=OUTLIER_CONF)
   
   # z-scale
+  zscaledWithoutOutliers<-as.data.frame(scale(continuousWithoutOutliers,center=TRUE, scale=TRUE))
   zscaled<-as.data.frame(scale(continuous,center=TRUE, scale=TRUE))
   
   # n the chosen classifier, the input values need to be scaled to [0.0,1.0]
+  continuousWithoutOutliersReadyforML<-rescaleDataFrame(zscaledWithoutOutliers)
   continuousReadyforML<-rescaleDataFrame(zscaled)
-  
-  # Process the categorical (symbolic/discrete) fields using 1-hot-encoding
+  print(paste("without outliers", continuousWithoutOutliersReadyforML))
+  print(paste("with outliers",continuousReadyforML))
+
   print("encoding non ordered categorical data")
   categoricalReadyforML<-oneHotEncode(dataset=dataset,field_types=field_types)
   
-  # Combine the two sets of data that are read for ML
-  combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
   
+  # Combine the two sets of data that are read for ML
+  combinedML<-cbind(continuousWithoutOutliersReadyforML,categoricalReadyforML)
+
   # process the ordered categorical fields
   print("encoding ordered categorical data")
   orderedCategoricalReadyforML<-encodeOrderedCategorical(dataset=dataset, field_types=field_types)
   
+  # View(orderedCategoricalReadyforML)
+  
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
   
-  #The dataset for ML information
+  # View(combinedML)
+  
+  # the dataset for ML information
   print(paste("Fields=",ncol(combinedML)))
   
   # Create a TRAINING dataset using HOLDOUT% (e.g. 70) of the records
@@ -273,15 +351,28 @@ main<-function(){
   # Randomise the entire data set
   combinedML<-combinedML[sample(nrow(combinedML)),]
   
-  # Create a TRAINING dataset using first HOLDOUT% of the records
-  # and the remaining 30% is used as TEST
-  # use ALL fields (columns)
-  training_records<-round(nrow(combinedML)*(HOLDOUT/100))
-  training_data <- combinedML[1:training_records,]
-  testing_data = combinedML[-(1:training_records),]
+  # Puts the two training and testing splits into a list
+  splitList <- splitDataset(combinedML)
   
-  Model(training_data = training_data, testing_data = testing_data)
+  # balance data
+  splitList$train <- rebalance(splitList$train, "both", "Attrition")
   
+  # Calling models
+  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "first dataset outliers removed")
+  
+  
+  #pre processing second dataset
+  combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
+  # combine the ordered categorical fields that are ready for ML
+  combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
+  # Puts the two training and testing splits into a list
+  splitList <- splitDataset(combinedML)
+  
+  # balance data
+  splitList$train <- rebalance(splitList$train, "both", "Attrition")
+  
+  # Calling models
+  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "first dataset outliers kept")
   
 }
 
