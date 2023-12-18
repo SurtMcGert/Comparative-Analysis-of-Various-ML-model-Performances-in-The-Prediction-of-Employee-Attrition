@@ -84,7 +84,9 @@ LIBRARIES<-c("outliers",
                "ROSE",
                "C50",
                "randomForest",
-               "mlbench")
+               "mlbench",
+               "superml")
+
 
 
 
@@ -220,7 +222,7 @@ Model<-function(training_data,testing_data, plot_heading){
   predictions <- c(
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
-    ModelAnna(training_data, testing_data, OUTPUT_FIELD),
+    ModelAnna(training_data, testing_data, formular),
     ModelMelric(training_data, testing_data),
     ModelZion(training_data, testing_data, formular)
   )
@@ -257,10 +259,19 @@ main<-function(){
   # this ratio could provide insights into the frequency of promotions in relation to the duration of the 
   # current managerial relationship. For example, a higher ratio might suggest that employees tend to receive 
   # promotions more frequently in comparison to the time they spend with their current manager.
-  divide <- function(colName1, colName2, dataframe) {
-    results <- colName1 / colName2
-    results[is.infinite(results) | is.nan(results)] <- 0
-    return(results)
+  divide <- function(val1, val2, threshold = 1) {
+    epsilon <- 1e-10
+    
+    # Check if the value in val2 is below the threshold
+    if (val2 < threshold) {
+      # Handle cases where there is limited time with the current manager
+      return(NA)  # You can choose a special value or handle it differently
+    }
+    
+    # Calculate the performance ratio
+    result <- (val1 + epsilon) / (val2 + epsilon)
+    
+    return(result)
   }
   
   # Standard subtraction formula used in combineOrDeriveFields
@@ -278,10 +289,12 @@ main<-function(){
   #View(dataset)
   
   # combine fields before removing any
-  dataset <- combineOrDeriveFields(dataset, "YearsWithCurrManager", "YearsSinceLastPromotion", divide, "PerformanceWithCurrentManager", TRUE)
+  dataset <- combineOrDeriveFields(dataset, "YearsSinceLastPromotion", "YearsWithCurrManager", divide, "PerformanceWithCurrentManager", TRUE, threshold = 1)
   dataset <- combineOrDeriveFields(dataset, "Age", "YearsAtCompany", subtract, "AgeJoined", FALSE)
   
-  #View(dataset)
+  dataset$PerformanceWithCurrentManager[is.na(dataset$PerformanceWithCurrentManager)] <- mean(dataset$PerformanceWithCurrentManager, na.rm = TRUE)
+  
+  View(dataset)
   
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)

@@ -493,13 +493,6 @@ calculateMeasures<-function(TP,FN,FP,TN){
 }
 
 # function to calculate a confusion matrix
-#                    ACTUAL
-#               ------------------
-# PREDICTED     FRAUD   |  GENUINE
-#               ------------------
-#     FRAUD      TP     |    FP
-#               ==================
-#     GENUINE    FN     |    TN
 # inputs:
 # expectedClass - vector - expected outcome from each row
 # predictedClass - vector - predicted outcome from each row
@@ -551,15 +544,7 @@ splitDataset<-function(combinedML){
 prettyDataset<-function(dataset,...){
   params <- list(...)
 
-  tidyTable<-data.frame(Field=names(dataset),
-                        Categorical=FALSE,
-                        Symbols=0,
-                        Name=0,
-                        Min=0.0,
-                        Mean=0.0,
-                        Max=0.0,
-                        Skew=0.0,
-                        stringsAsFactors = FALSE)
+  tidyTable<-data.frame(Field=names(dataset),Categorical=FALSE, Symbols=0, Name=0, Min=0.0, Mean=0.0, Max=0.0, Skew=0.0, stringsAsFactors = FALSE)
 
   if (length(params)>0){
     names(tidyTable)[1]<-params[1]
@@ -675,13 +660,9 @@ plotData <- function(data, fieldNameOutput, fieldTypes){
 # fun: function to apply to the two input columns
 # newColName: The name of the new column that will be created
 # combine: set to true to remove the two input columns after the new column has been created
-combineOrDeriveFields <- function(dataframe, colName1, colName2, fun, newColName, combine = FALSE) {
+combineOrDeriveFields <- function(dataframe, colName1, colName2, fun, newColName, combine = FALSE, threshold = 1) {
 
-  column1 <- dataframe[[colName1]]
-  column2 <- dataframe[[colName2]]
-
-  # apply the function to create the new column
-  newColumn <- fun(column1, column2)  
+  newColumn <- mapply(FUN = function(x, y) fun(x, y, threshold), dataframe[[colName1]], dataframe[[colName2]])
   
   # add the new column to the dataframe
   dataframe[[newColName]] <- newColumn
