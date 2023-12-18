@@ -30,7 +30,7 @@ ModelChris<-function(training_data, testing_data, formula){
   # Re-train using best lambda (alpha = 0 means ridge penalty, alpha = 1 means lasso penalty)
   logisticModel <- glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", lambda = best_lambda, alpha = 1)
   
-  predictions <- predict(object = logisticModel, newx = as.matrix(testing_data), type="response", s = best_lambda)
+  predictions <- predict(object = logisticModel, newx = as.matrix(testing_data), type="response", s = best_lambda, alpha = 1)
   
   return(predictions)
 }
