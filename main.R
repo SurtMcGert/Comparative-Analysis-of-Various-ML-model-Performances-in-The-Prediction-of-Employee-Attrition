@@ -74,15 +74,17 @@ LIBRARIES<-c("outliers",
                "stats",
                "PerformanceAnalytics",
                "tidyverse",
-                "reshape2",
-             "car",
-             "caret",
-             "neuralnet",
-             "e1071",
-             "ROSE",
-             "C50",
-              "randomForest",
-             "mlbench")
+               "reshape2",
+               "car",
+               "caret",
+               "neuralnet",
+               "dplyr",
+               "glmnet",
+               "e1071",
+               "ROSE",
+               "C50",
+               "randomForest",
+               "mlbench")
 
 
 
