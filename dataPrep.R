@@ -89,15 +89,6 @@ getFieldTypes<-function(dataset, continuousFields=list(), orderedFields=list(), 
 
   field_types<-vector()
   for(field in 1:(ncol(dataset))){
-
-    #manual types is always empty so the if statement is never entered
-    #redundant condition
-    # entry<-which(manualTypes$name==names(dataset)[field])
-    # if (length(entry)>0){
-    #   field_types[field]<-manualTypes$type[entry]
-    #   next
-    # }
-
     if (is.numeric(dataset[,field]) && !(names(dataset)[field] %in% orderedFields)) {
       field_types[field]<-TYPE_NUMERIC
     }
@@ -589,6 +580,14 @@ prettyDataset<-function(dataset,...){
       tidyTable$Mean[i]<-round(mean(dataset[,i]),2)
       tidyTable$Min[i]<-round(min(dataset[,i]),2)
       tidyTable$Skew[i]<-round(PerformanceAnalytics::skewness(dataset[,i],method="moment"),2)
+      # add Median and Mode
+      tidyTable$Median[i] <- round(median(dataset[, i]), 2)
+      
+      get_mode <- function(v) {
+        uniqv <- unique(v)
+        uniqv[which.max(tabulate(match(v, uniqv)))]
+      }
+      tidyTable$Mode[i] <- get_mode(dataset[, i])
     }
   }
 
