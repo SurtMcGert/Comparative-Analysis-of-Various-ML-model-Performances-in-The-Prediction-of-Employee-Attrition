@@ -23,6 +23,17 @@ ModelHarry<-function(training_data, testing_data, formula){
 }
 
 ModelChris<-function(training_data, testing_data, formula){
+  print("Running Chris model")
+  
+  # Cross-validation model
+  cv_model <- cv.glmnet(x = as.matrix(training_data), y = training_data$Attrition)
+  # Select best lambda
+  best_lambda <- cv_model$lambda.min
+  # Re-train using best lambda (alpha = 0 means ridge penalty, alpha = 1 means lasso penalty)
+  logisticModel <- glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", lambda = best_lambda, alpha = 1)
+  
+  predictions <- predict(object = logisticModel, newx = as.matrix(testing_data), type="response", s = best_lambda, alpha = 1)
+  
   predictions <- list()
   svmPredictions <- list()
   return(list(predictions, svmPredictions))
