@@ -19,6 +19,9 @@ ModelHarry<-function(training_data, testing_data, formula){
   # SVM
   supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
   svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
+  
+  print("results")
+  print(svmPredictions)
   return(list(predictions, svmPredictions))
 }
 
@@ -31,37 +34,90 @@ ModelChris<-function(training_data, testing_data, formula){
 # Function parameters:
 # - training_data: Training dataset
 # - testing_data: Testing dataset
-# - OUTPUT_FIELD: Name of the output field (target variable) in the dataset
+# - formula: specific formula for dataset
 # - plot: A logical value indicating whether to plot feature importance (default is TRUE)
 ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
-  set.seed(123)
-  # RF
-  rf <- RFTrainer$new()
-  gst <-GridSearchCV$new(trainer = rf,
-                         parameters = list(n_estimators = c(500, 1000, 1500),
-                                           max_depth = c(1,2,5,10)),
-                         n_folds = 3,
-                         scoring = c('accuracy','auc'))
-  gst$fit(training_data, "Attrition")
-  best_params <- gst$best_iteration()
-  n_estimators = best_params$n_estimators
-  max_depth = best_params$max_depth
-  best_model <- randomForest(Attrition ~ ., data = training_data, n_estimators = n_estimators, max_depth = max_depth)
-  predictions <- predict(best_model, newdata = testing_data, type = "response")
+    set.seed(123)
+  
+    # RF
+    rf <- RFTrainer$new(classification=1,
+                        seed=42,
+                        verbose=TRUE)
+    
+    parameters = list(
+      n_estimators = c(500, 1000, 1500),
+      max_depth = c(1, 2, 5, 10)
+      )
+    
+    gst <-GridSearchCV$new(trainer = rf,
+                           parameters = parameters,
+                           n_folds = 3,
+                           scoring = c('accuracy','auc'))
+    gst$fit(training_data, "Attrition")
+    best_params <- gst$best_iteration()
+    n_estimators = best_params$n_estimators
+    max_depth = best_params$max_depth
+  
+    positionClassOutput <- which(names(training_data) == OUTPUT_FIELD)
 
+    training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
+    levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
+
+    testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
+    levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
+
+    sqrt_ncols <- sqrt(ncol(training_data))
+    
+    param_grid <- expand.grid(
+      .mtry = floor(sqrt_ncols) + c(-1, 0, 1)
+    )
+
+    ctrl <- trainControl(
+      method = "cv",
+      number = 5,
+      summaryFunction = twoClassSummary,
+      classProbs = TRUE,
+      verboseIter = TRUE
+    )
+
+    rf_model <- train(
+      Attrition ~ ., data = training_data,
+      method = "rf",
+      metric = "logLoss",
+      trControl = ctrl,
+      tuneGrid = param_grid
+    )
+
+    best_mtry <- rf_model$bestTune$mtry
+
+    final_rf_model <- randomForest(
+      Attrition ~ ., data = training_data,
+      mtry = best_mtry,
+      ntree = n_estimators,
+      max_depth = max_depth
+    )
+    test_rfpredictedProbs <- predict(final_rf_model, newdata = testing_data, type = "prob")[, 2]
+
+  
   # Plot feature importance if specified
   if (plot) {
     # Access feature importance from model
-    feature_importance <- best_model$importance
+    feature_importance <- final_rf_model$importance
     # Plot feature importance
-    varImpPlot(best_model, main = "Feature Importance")
+    varImpPlot(final_rf_model, main = "Feature Importance")
   }
-  
+
   # SVM
-  supportVectorMachine = svm(formula, training_data, kernel="linear", probability=TRUE)
-  svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
-  
-  return(list(predictions, svmPredictions))
+  svm_model <- svm(
+    formula,
+    data=training_data,
+    kernel = "radial",
+    probability = TRUE
+  )
+
+  test_svmpredictedProbs<-predict(svm_model, testing_data, type="prob")
+
+  return(list(test_rfpredictedProbs, test_svmpredictedProbs))
 }
 
 ModelMelric<-function(training_data, testing_data, formula){
