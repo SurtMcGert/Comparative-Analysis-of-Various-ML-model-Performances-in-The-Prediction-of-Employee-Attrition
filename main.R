@@ -286,7 +286,7 @@ main<-function(){
   print(field_types)
  
   # plot our data
-  #plotData(dataset, OUTPUT_FIELD, field_types)
+  plotData(dataset, OUTPUT_FIELD, field_types)
   prettyDataset(dataset)
   
   results<-data.frame(field=names(dataset),type=field_types)

@@ -175,8 +175,6 @@ ModelMelric<-function(training_data, testing_data, formula){
                              scale=TRUE,
                              probability=TRUE)
   
-  # supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
-  
   svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
   
   return(list(test_predictedProbs, svmPredictions))
