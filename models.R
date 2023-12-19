@@ -19,9 +19,7 @@ ModelHarry<-function(training_data, testing_data, formula){
   # SVM
   supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
   svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
-  
-  print("results")
-  print(svmPredictions)
+
   return(list(predictions, svmPredictions))
 }
 
@@ -45,10 +43,11 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
                         verbose=TRUE)
     
     parameters = list(
-      n_estimators = c(500, 1000, 1500),
-      max_depth = c(1, 2, 5, 10)
+      n_estimators = c(500, 1000, 1500, 2000, 3000),
+      max_depth = c(1, 10, 50)
       )
     
+    # Tune ntrees and max_nodes
     gst <-GridSearchCV$new(trainer = rf,
                            parameters = parameters,
                            n_folds = 3,
@@ -57,37 +56,50 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
     best_params <- gst$best_iteration()
     n_estimators = best_params$n_estimators
     max_depth = best_params$max_depth
-  
-    positionClassOutput <- which(names(training_data) == OUTPUT_FIELD)
-
-    training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
-    levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
-
-    testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
-    levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
-
+    results <- data.frame(gst$results)
+    print("Summary of ntrees and max-node tuning:")
+    print(gst$evaluation_scores)
+    print("Best tree number")
+    print(n_estimators)
+    print("Best node depth")
+    print(max_depth)
+    
+    
+    
+    # Tune mtry
     sqrt_ncols <- sqrt(ncol(training_data))
+    metric <- 'auc'
     
     param_grid <- expand.grid(
       .mtry = floor(sqrt_ncols) + c(-1, 0, 1)
     )
 
     ctrl <- trainControl(
-      method = "cv",
+      method = "repeatedcv",
       number = 5,
       summaryFunction = twoClassSummary,
       classProbs = TRUE,
-      verboseIter = TRUE
+      search='grid'
     )
+    
+    # Inputs must be factors
+    training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
+    levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
 
+    testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
+    levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
+    
     rf_model <- train(
       Attrition ~ ., data = training_data,
       method = "rf",
-      metric = "logLoss",
+      metric = metric,
       trControl = ctrl,
       tuneGrid = param_grid
     )
-
+    
+    print("Tune mtry")
+    print(rf_model$results)
+    
     best_mtry <- rf_model$bestTune$mtry
 
     final_rf_model <- randomForest(
