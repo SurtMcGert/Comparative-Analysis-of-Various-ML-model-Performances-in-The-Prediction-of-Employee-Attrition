@@ -286,7 +286,7 @@ main<-function(){
   print(field_types)
  
   # plot our data
-  plotData(dataset, OUTPUT_FIELD, field_types)
+  #plotData(dataset, OUTPUT_FIELD, field_types)
   prettyDataset(dataset)
   
   results<-data.frame(field=names(dataset),type=field_types)
@@ -359,7 +359,7 @@ main<-function(){
   splitList$train <- rebalance(splitList$train, "both", "Attrition")
   
   # Calling models
-  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "first dataset outliers kept")
+  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "second dataset outliers kept")
   
 }
 
