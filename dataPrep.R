@@ -279,9 +279,7 @@ cleanData<-function(dataset, remove = list()){
   } else {
     print("no numeric columns for removeRedundantFields")
   }
-  
-  
-  
+
   print("removed redundant fields")
   print("cleaned data")
   return (cleanedData)
