@@ -46,37 +46,17 @@ ModelChris<-function(training_data, testing_data, formula){
 # - plot: A logical value indicating whether to plot feature importance (default is TRUE)
 ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
   set.seed(123)
-  print("Starting svm")
-  # SVM
-  # param_grid <- expand.grid(
-  #   C = c(0.1, 1, 10),
-  #   gamma = c(0.01, 0.1, 1)
-  # )
-  # 
-  # svm_tune <- tune(
-  #   svm,
-  #   formula,
-  #   data = training_data,
-  #   kernel = "radial",
-  #   probability = TRUE,
-  #   ranges = param_grid
-  #   # tunecontrol = tune.control(sampling = "cross", cross = 5)
-  # )
-  # best_params <- svm_tune$best.parameters
-  # svm_tune$best.model
-  # tune.results <- svm_tune$results
-  # 
-  # best_model <- svm_tune$best.model
-  # 
-  # final_model <- svm(
-  #   formula,
-  #   data = training_data,
-  #   kernel = "radial",
-  #   probability = TRUE,
-  #   cost = best_params$C,
-  #   gamma = best_params$gamma
-  # )
-  svm_model = svm(formula, training_data, type="nu-regression", nu=0.3, cost=0.1, kernel="polynomial", degree="2", gamma=0.5, tolerance=0.001, probability=TRUE)
+  
+  svm_model = svm(formula, 
+                  training_data, 
+                  type="nu-regression", 
+                  nu=0.3, 
+                  cost=0.1, 
+                  kernel="polynomial", 
+                  degree="2", 
+                  gamma=0.5, 
+                  tolerance=0.001, 
+                  probability=TRUE)
   test_svmpredictedProbs<-predict(svm_model, testing_data, type="response")
   
   # RF
