@@ -74,16 +74,20 @@ LIBRARIES<-c("outliers",
                "stats",
                "PerformanceAnalytics",
                "tidyverse",
-                "reshape2",
-             "car",
-             "caret",
-             "neuralnet",
-             "e1071",
-             "ROSE",
-             "C50",
-              "randomForest",
-             "mlbench",
-             "superml")
+               "reshape2",
+               "car",
+               "caret",
+               "neuralnet",
+               "dplyr",
+               "glmnet",
+               "e1071",
+               "ROSE",
+               "C50",
+               "randomForest",
+               "mlbench",
+               "superml",
+            "ranger")
+
 
 
 
@@ -251,6 +255,12 @@ main<-function(){
   # read the dataset
   dataset<-readDataset(DATASET_FILENAME)
   
+  # all ages of people who have left
+  ages <- dataset$Age[dataset$Attrition == "Yes"]
+  meanAge <- mean(ages)
+  print("Mean age")
+  print(meanAge)
+  
   # formula to divide two columns and obtain a ratio
   # to understand the average time between promotions relative to the time spent with the current manager.
   # this ratio could provide insights into the frequency of promotions in relation to the duration of the 
@@ -289,6 +299,7 @@ main<-function(){
   dataset <- combineOrDeriveFields(dataset, "YearsSinceLastPromotion", "YearsWithCurrManager", divide, "PerformanceWithCurrentManager", TRUE, threshold = 1)
   dataset <- combineOrDeriveFields(dataset, "Age", "YearsAtCompany", subtract, "AgeJoined", FALSE)
   
+  # replace the NA values in this field PerformanceWithCurrentManager with its mean
   dataset$PerformanceWithCurrentManager[is.na(dataset$PerformanceWithCurrentManager)] <- mean(dataset$PerformanceWithCurrentManager, na.rm = TRUE)
   
   View(dataset)
