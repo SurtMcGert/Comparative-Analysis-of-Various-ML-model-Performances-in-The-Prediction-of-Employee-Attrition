@@ -26,16 +26,21 @@ ModelChris<-function(training_data, testing_data, formula){
   print("Running Chris model")
   
   # Cross-validation model
-  cv_model <- cv.glmnet(x = as.matrix(training_data), y = training_data$Attrition)
+  cv_model <- cv.glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", type.measure = "mse", nfolds = 10, alignment = "fraction")
   # Select best lambda
   best_lambda <- cv_model$lambda.min
   # Re-train using best lambda (alpha = 0 means ridge penalty, alpha = 1 means lasso penalty)
-  logisticModel <- glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", lambda = best_lambda, alpha = 1)
+  logisticModel <- glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", lower.limit = -1, upper.limit = 1, lambda = best_lambda, alpha = 1)
   
-  predictions <- predict(object = logisticModel, newx = as.matrix(testing_data), type="response", s = best_lambda, alpha = 1)
+  predictions <- predict.glmnet(object = logisticModel, newx = as.matrix(testing_data), type = "response")
   
-  predictions <- list()
-  svmPredictions <- list()
+  print(predictions)
+  
+  
+  # SVM
+  supportVectorMachine = svm(formula, training_data, cost = 8, kernel = "linear", gamma = 0.4, probability = TRUE)
+  svmPredictions<-predict(supportVectorMachine, testing_data, type = "response")
+  
   return(list(predictions, svmPredictions))
 }
 
