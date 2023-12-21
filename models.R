@@ -45,12 +45,13 @@ ModelHarry<-function(training_data, testing_data, formula){
 
 ModelChris<-function(training_data, testing_data, formula){
   print("Running Chris model")
-  
+
   # Cross-validation model
   cv_model <- cv.glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", type.measure = "mse", nfolds = 10, alignment = "fraction")
   # Select best lambda
   best_lambda <- cv_model$lambda.min
   # Re-train using best lambda (alpha = 0 means ridge penalty, alpha = 1 means lasso penalty)
+
   logisticModel <- glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", lower.limit = -1, upper.limit = 1, lambda = best_lambda, alpha = 1)
   
   predictions <- predict.glmnet(object = logisticModel, newx = as.matrix(testing_data), type = "response")
@@ -71,118 +72,92 @@ ModelChris<-function(training_data, testing_data, formula){
 # - formula: specific formula for dataset
 # - plot: A logical value indicating whether to plot feature importance (default is TRUE)
 ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
-    set.seed(123)
-
-  # SVM
+  set.seed(123)
+  
+  svm_model = svm(formula, 
+                  training_data, 
+                  type="nu-regression", 
+                  nu=0.3, 
+                  cost=0.1, 
+                  kernel="polynomial", 
+                  degree="2", 
+                  gamma=0.5, 
+                  tolerance=0.001, 
+                  probability=TRUE)
+  test_svmpredictedProbs<-predict(svm_model, testing_data, type="response")
+  
+  # RF
+  rf <- RFTrainer$new(classification=1,
+                      seed=42,
+                      verbose=TRUE)
+  
+  parameters = list(
+    n_estimators = c(500, 1000, 1500, 2000, 3000),
+    max_depth = c(1, 10, 50)
+  )
+  
+  # Tune ntrees and max_nodes
+  gst <-GridSearchCV$new(trainer = rf,
+                         parameters = parameters,
+                         n_folds = 3,
+                         scoring = c('accuracy','auc'))
+  gst$fit(training_data, "Attrition")
+  best_params <- gst$best_iteration()
+  n_estimators = best_params$n_estimators
+  max_depth = best_params$max_depth
+  results <- data.frame(gst$results)
+  print("Summary of ntrees and max-node tuning:")
+  print(gst$evaluation_scores)
+  print("Best tree number")
+  print(n_estimators)
+  print("Best node depth")
+  print(max_depth)
+  
+  
+  # Tune mtry
+  sqrt_ncols <- sqrt(ncol(training_data))
+  metric <- 'auc'
+  
   param_grid <- expand.grid(
-    C = c(0.1, 1, 10),
-    gamma = c(0.01, 0.1, 1)
-    )
-  
-  svm_tune <- tune(
-    svm,
-    formula,
-    type="nu-regression",
-    scale=TRUE,
-    data = training_data,
-    kernel = "radial",
-    probability = TRUE,
-    nu=0.25,
-    ranges = param_grid,
-    tol=0.001,
-    tunecontrol = tune.control(sampling = "cross", cross = 5)
+    .mtry = floor(sqrt_ncols) + c(-2, 0, 2)
   )
-  best_params <- svm_tune$best.parameters
-  svm_tune$best.model
-  tune.results <- svm_tune$results
-
-  best_model <- svm_tune$best.model
   
-  final_model <- svm(
-    formula,
-    type="nu-regression",
-    scale=TRUE,
-    data = training_data,
-    kernel = "radial",
-    probability = TRUE,
-    cost = best_params$C,
-    gamma = best_params$gamma,
-    nu=0.25
+  ctrl <- trainControl(
+    method = "repeatedcv",
+    number = 5,
+    summaryFunction = twoClassSummary,
+    classProbs = TRUE,
+    search='grid'
   )
-  test_svmpredictedProbs<-predict(final_model, testing_data, type="prob")
   
-    # RF
-    rf <- RFTrainer$new(classification=1,
-                        seed=42,
-                        verbose=TRUE)
-    
-    parameters = list(
-      n_estimators = c(500, 1000, 1500, 2000, 3000),
-      max_depth = c(1, 10, 50)
-      )
-    
-    # Tune ntrees and max_nodes
-    gst <-GridSearchCV$new(trainer = rf,
-                           parameters = parameters,
-                           n_folds = 3,
-                           scoring = c('accuracy','auc'))
-    gst$fit(training_data, "Attrition")
-    best_params <- gst$best_iteration()
-    n_estimators = best_params$n_estimators
-    max_depth = best_params$max_depth
-    results <- data.frame(gst$results)
-    print("Summary of ntrees and max-node tuning:")
-    print(gst$evaluation_scores)
-    print("Best tree number")
-    print(n_estimators)
-    print("Best node depth")
-    print(max_depth)
-    
-    
-    # Tune mtry
-    sqrt_ncols <- sqrt(ncol(training_data))
-    metric <- 'auc'
-    
-    param_grid <- expand.grid(
-      .mtry = floor(sqrt_ncols) + c(-2, 0, 2)
-    )
-
-    ctrl <- trainControl(
-      method = "repeatedcv",
-      number = 5,
-      summaryFunction = twoClassSummary,
-      classProbs = TRUE,
-      search='grid'
-    )
-    
-    # Inputs must be factors
-    training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
-    levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
-
-    testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
-    levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
-    
-    rf_model <- train(
-      Attrition ~ ., data = training_data,
-      method = "rf",
-      metric = metric,
-      trControl = ctrl,
-      tuneGrid = param_grid
-    )
-    
-    print("Tune mtry")
-    print(rf_model$results)
-    
-    best_mtry <- rf_model$bestTune$mtry
-
-    final_rf_model <- randomForest(
-      Attrition ~ ., data = training_data,
-      mtry = best_mtry,
-      ntree = n_estimators,
-      max_depth = max_depth
-    )
-    test_rfpredictedProbs <- predict(final_rf_model, newdata = testing_data, type = "prob")[, 2]
-
+  # Inputs must be factors
+  training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
+  levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
+  
+  testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
+  levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
+  
+  rf_model <- train(
+    Attrition ~ ., data = training_data,
+    method = "rf",
+    metric = metric,
+    trControl = ctrl,
+    tuneGrid = param_grid
+  )
+  
+  print("Tune mtry")
+  print(rf_model$results)
+  
+  best_mtry <- rf_model$bestTune$mtry
+  
+  final_rf_model <- randomForest(
+    Attrition ~ ., data = training_data,
+    mtry = best_mtry,
+    ntree = n_estimators,
+    max_depth = max_depth
+  )
+  test_rfpredictedProbs <- predict(final_rf_model, newdata = testing_data, type = "prob")[, 2]
+  
   
   # Plot feature importance if specified
   if (plot) {
@@ -191,8 +166,6 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
     # Plot feature importance
     varImpPlot(final_rf_model, main = "Feature Importance")
   }
-  
-
   
   return(list(test_rfpredictedProbs, test_svmpredictedProbs))
 }
