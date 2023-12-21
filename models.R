@@ -47,6 +47,44 @@ ModelChris<-function(training_data, testing_data, formula){
 # - plot: A logical value indicating whether to plot feature importance (default is TRUE)
 ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
     set.seed(123)
+
+  # SVM
+  param_grid <- expand.grid(
+    C = c(0.1, 1, 10),
+    gamma = c(0.01, 0.1, 1)
+    )
+  
+  svm_tune <- tune(
+    svm,
+    formula,
+    type="nu-regression",
+    scale=TRUE,
+    data = training_data,
+    kernel = "radial",
+    probability = TRUE,
+    nu=0.25,
+    ranges = param_grid,
+    tol=0.001,
+    tunecontrol = tune.control(sampling = "cross", cross = 5)
+  )
+  best_params <- svm_tune$best.parameters
+  svm_tune$best.model
+  tune.results <- svm_tune$results
+
+  best_model <- svm_tune$best.model
+  
+  final_model <- svm(
+    formula,
+    type="nu-regression",
+    scale=TRUE,
+    data = training_data,
+    kernel = "radial",
+    probability = TRUE,
+    cost = best_params$C,
+    gamma = best_params$gamma,
+    nu=0.25
+  )
+  test_svmpredictedProbs<-predict(final_model, testing_data, type="prob")
   
     # RF
     rf <- RFTrainer$new(classification=1,
@@ -76,13 +114,12 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
     print(max_depth)
     
     
-    
     # Tune mtry
     sqrt_ncols <- sqrt(ncol(training_data))
     metric <- 'auc'
     
     param_grid <- expand.grid(
-      .mtry = floor(sqrt_ncols) + c(-1, 0, 1)
+      .mtry = floor(sqrt_ncols) + c(-2, 0, 2)
     )
 
     ctrl <- trainControl(
@@ -129,16 +166,6 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
     # Plot feature importance
     varImpPlot(final_rf_model, main = "Feature Importance")
   }
-
-  # SVM
-  svm_model <- svm(
-    formula,
-    data=training_data,
-    kernel = "radial",
-    probability = TRUE
-  )
-
-  test_svmpredictedProbs<-predict(svm_model, testing_data, type="prob")
 
   return(list(test_rfpredictedProbs, test_svmpredictedProbs))
 }
@@ -197,8 +224,10 @@ ModelMelric<-function(training_data, testing_data){
   
   #return(predictedLabels)
   
+  svm_pred <- list()
   
-  return(test_predictedProbs)
+  
+  return(list(test_predictedProbs, svm_pred))
 }
 
 ModelZion<-function(training_data, testing_data, formula){
