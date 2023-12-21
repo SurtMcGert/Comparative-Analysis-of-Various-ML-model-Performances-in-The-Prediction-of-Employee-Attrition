@@ -119,7 +119,8 @@ displayPerformance<-function(probs,testing_data, name){
     toPlot<-rbind(toPlot,data.frame(x=threshold,precision=results$pgood,recall=results$TPR,accuracy=results$accuracy,fpr=results$FPR))
   }
   
-  toPlot$youdan<-toPlot$recall+(1-toPlot$fpr)-1
+  # toPlot$youdan<-toPlot$recall+(1-toPlot$fpr)-1
+  toPlot$youdan<-toPlot$recall+(100 - toPlot$fpr)-100
   
   maxYoudan<-toPlot$x[which.max(toPlot$youdan)]
   
@@ -302,7 +303,6 @@ main<-function(){
   # replace the NA values in this field PerformanceWithCurrentManager with its mean
   dataset$PerformanceWithCurrentManager[is.na(dataset$PerformanceWithCurrentManager)] <- mean(dataset$PerformanceWithCurrentManager, na.rm = TRUE)
   
-  View(dataset)
   
   #determine each field type
   field_types<-getFieldTypes(dataset, continuousFields=CONTINUOUS_FIELDS, orderedFields=ORDERED_FIELDS)
@@ -382,7 +382,9 @@ main<-function(){
   splitList$train <- rebalance(splitList$train, "both", "Attrition")
   
   # Calling models
-  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "first dataset outliers kept")
+  Model(training_data = splitList$train, testing_data = splitList$test, plot_heading = "second dataset outliers kept")
+  
+  View(splitList$test)
   
 }
 
