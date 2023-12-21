@@ -521,7 +521,7 @@ calculateConfusionMatrix<-function(expectedClass,predictedClass){
 splitDataset<-function(combinedML){
 
   # **** Create a TRAINING dataset using 70% of the records
-
+  set.seed(123)
   combinedML<-combinedML[order(runif(nrow(combinedML))),]
   training_records<-round(nrow(combinedML)*(70/100))
 

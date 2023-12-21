@@ -13,11 +13,31 @@ ModelHarry<-function(training_data, testing_data, formula){
   print(paste(layers))
   print("training")
   set.seed(123)
-  nn=neuralnet(formula,data=training_data, stepmax = 8000, lifesign.step = 500, hidden=layers, act.fct="logistic", err.fct="ce", algorithm="backprop", learningrate = 0.01, threshold=5, rep=1, linear.output = FALSE, lifesign = "full")
+  nn=neuralnet(formula,data=training_data, 
+               stepmax = 8000, 
+               lifesign.step = 500, 
+               hidden=layers, 
+               act.fct="logistic", 
+               err.fct="ce", 
+               algorithm="backprop", 
+               learningrate = 0.01, 
+               threshold=5, 
+               rep=1, 
+               linear.output = FALSE, 
+               lifesign = "full")
   predictions<-predict(nn, testing_data, type="response")
   
   # SVM
-  supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
+  supportVectorMachine = svm(formula, 
+                             training_data, 
+                             type="nu-regression", 
+                             nu=0.3, 
+                             cost=0.1, 
+                             kernel="polynomial", 
+                             degree="5", 
+                             gamma=0.5, 
+                             tolerance = 0.001, 
+                             probability=TRUE)
   svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
   return(list(predictions, svmPredictions))
 }
@@ -59,6 +79,7 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
   
   # SVM
   supportVectorMachine = svm(formula, training_data, kernel="linear", probability=TRUE)
+  
   svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
   
   return(list(predictions, svmPredictions))
