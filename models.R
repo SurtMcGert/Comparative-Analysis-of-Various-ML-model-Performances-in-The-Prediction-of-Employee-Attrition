@@ -19,92 +19,160 @@ ModelHarry<-function(training_data, testing_data, formula){
   # SVM
   supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
   svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
+
   return(list(predictions, svmPredictions))
 }
 
 ModelChris<-function(training_data, testing_data, formula){
-  predictions <- list()
-  svmPredictions <- list()
+  print("Running Chris model")
+  
+  # Cross-validation model
+  cv_model <- cv.glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", type.measure = "mse", nfolds = 10, alignment = "fraction")
+  # Select best lambda
+  best_lambda <- cv_model$lambda.min
+  # Re-train using best lambda (alpha = 0 means ridge penalty, alpha = 1 means lasso penalty)
+  logisticModel <- glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", lower.limit = -1, upper.limit = 1, lambda = best_lambda, alpha = 1)
+  
+  predictions <- predict.glmnet(object = logisticModel, newx = as.matrix(testing_data), type = "response")
+  
+  print(predictions)
+  
+  
+  # SVM
+  supportVectorMachine = svm(formula, training_data, cost = 8, kernel = "linear", gamma = 0.4, probability = TRUE)
+  svmPredictions<-predict(supportVectorMachine, testing_data, type = "response")
+  
   return(list(predictions, svmPredictions))
 }
 
+# Function parameters:
+# - training_data: Training dataset
+# - testing_data: Testing dataset
+# - formula: specific formula for dataset
+# - plot: A logical value indicating whether to plot feature importance (default is TRUE)
+ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
+    set.seed(123)
 
-ModelAnna<-function(training_data, testing_data, ENSEMBLE_SIZE, FOREST_SIZE, OUTPUT_FIELD, plot=TRUE){
-  # Try multiple models and then aggregate their predictions.
-  # I train multiple models with different subsets of data and different hyperparameters
-  myTitle<-paste("Ensamble of Random Forests (Size=",ENSEMBLE_SIZE, "Trees=", FOREST_SIZE,")")
-  print(myTitle)
-  positionClassOutput<-which(names(training_data)==OUTPUT_FIELD)
+  # SVM
+  param_grid <- expand.grid(
+    C = c(0.1, 1, 10),
+    gamma = c(0.01, 0.1, 1)
+    )
   
-  forest_list <- list()
+  svm_tune <- tune(
+    svm,
+    formula,
+    type="nu-regression",
+    scale=TRUE,
+    data = training_data,
+    kernel = "radial",
+    probability = TRUE,
+    nu=0.25,
+    ranges = param_grid,
+    tol=0.001,
+    tunecontrol = tune.control(sampling = "cross", cross = 5)
+  )
+  best_params <- svm_tune$best.parameters
+  svm_tune$best.model
+  tune.results <- svm_tune$results
+
+  best_model <- svm_tune$best.model
   
-  # Train random forest models
-  for (i in 1:ENSEMBLE_SIZE) {
-    sampled_indices <- sample(1:nrow(training_data), replace = TRUE)
-    sampled_data <- training_data[sampled_indices, ]
+  final_model <- svm(
+    formula,
+    type="nu-regression",
+    scale=TRUE,
+    data = training_data,
+    kernel = "radial",
+    probability = TRUE,
+    cost = best_params$C,
+    gamma = best_params$gamma,
+    nu=0.25
+  )
+  test_svmpredictedProbs<-predict(final_model, testing_data, type="prob")
+  
+    # RF
+    rf <- RFTrainer$new(classification=1,
+                        seed=42,
+                        verbose=TRUE)
     
-    train_inputs <- sampled_data[-positionClassOutput]
-    print(ncol(train_inputs))
+    parameters = list(
+      n_estimators = c(500, 1000, 1500, 2000, 3000),
+      max_depth = c(1, 10, 50)
+      )
     
-    train_expected <- sampled_data[, positionClassOutput]
-    rf <- randomForest::randomForest(train_inputs,
-                                     factor(train_expected),
-                                     ntree = FOREST_SIZE,
-                                     importance = TRUE,
-                                     mtry = sqrt(ncol(train_inputs)),
-                                     nodesize=5)
+    # Tune ntrees and max_nodes
+    gst <-GridSearchCV$new(trainer = rf,
+                           parameters = parameters,
+                           n_folds = 3,
+                           scoring = c('accuracy','auc'))
+    gst$fit(training_data, "Attrition")
+    best_params <- gst$best_iteration()
+    n_estimators = best_params$n_estimators
+    max_depth = best_params$max_depth
+    results <- data.frame(gst$results)
+    print("Summary of ntrees and max-node tuning:")
+    print(gst$evaluation_scores)
+    print("Best tree number")
+    print(n_estimators)
+    print("Best node depth")
+    print(max_depth)
     
-    # Add each trained model to the list
-    forest_list[[i]] <- rf
+    
+    # Tune mtry
+    sqrt_ncols <- sqrt(ncol(training_data))
+    metric <- 'auc'
+    
+    param_grid <- expand.grid(
+      .mtry = floor(sqrt_ncols) + c(-2, 0, 2)
+    )
+
+    ctrl <- trainControl(
+      method = "repeatedcv",
+      number = 5,
+      summaryFunction = twoClassSummary,
+      classProbs = TRUE,
+      search='grid'
+    )
+    
+    # Inputs must be factors
+    training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
+    levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
+
+    testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
+    levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
+    
+    rf_model <- train(
+      Attrition ~ ., data = training_data,
+      method = "rf",
+      metric = metric,
+      trControl = ctrl,
+      tuneGrid = param_grid
+    )
+    
+    print("Tune mtry")
+    print(rf_model$results)
+    
+    best_mtry <- rf_model$bestTune$mtry
+
+    final_rf_model <- randomForest(
+      Attrition ~ ., data = training_data,
+      mtry = best_mtry,
+      ntree = n_estimators,
+      max_depth = max_depth
+    )
+    test_rfpredictedProbs <- predict(final_rf_model, newdata = testing_data, type = "prob")[, 2]
+
+  
+  # Plot feature importance if specified
+  if (plot) {
+    # Access feature importance from model
+    feature_importance <- final_rf_model$importance
+    # Plot feature importance
+    varImpPlot(final_rf_model, main = "Feature Importance")
   }
-  
-  # train data: dataframe with the input fields
-  # train_inputs<-training_data[-positionClassOutput]
-  
-  # train data: vector with the expedcted output
-  # train_expected<-training_data[,positionClassOutput]
-  
-  # rf<-randomForest::randomForest(train_inputs,
-  #                                factor(train_expected),
-  #                                ntree=FOREST_SIZE ,
-  #                                importance=TRUE,
-  #                                mtry=sqrt(ncol(train_inputs)))
-  
-  
-  # ************************************************
-  # Use the created decision tree with the test dataset
-  # measures<-getTreeClassifications(myTree = rf,
-  #                                  testDataset = testing_data,
-  #                                  title=myTitle,
-  #                                  plot=plot,
-  #                                  OUTPUT_FIELD=OUTPUT_FIELD)
-  
-  test_predictedProbs <- matrix(0, nrow = nrow(testing_data), ncol = ENSEMBLE_SIZE)
-  for (i in 1:ENSEMBLE_SIZE) {
-    rf <- forest_list[[i]]
-    test_predictedProbs[, i] <- predict(rf, testing_data, type = "prob")[, 2]
-  }
-  
-  # normalize predictions
-  test_predictedProbs <- rowMeans(test_predictedProbs)
-  
-  if (plot==TRUE){
-    # Get importance of the input fields
-    importance<-randomForest::importance(rf,scale=TRUE,type=1)
-    importance<-importance[order(importance,decreasing=TRUE),,drop=FALSE]
-    
-    colnames(importance)<-"Strength"
-    
-    barplot(t(importance),las=2, border = 0,
-            cex.names =0.7,
-            main=myTitle)
-    
-    print(formattable::formattable(data.frame(importance)))
-  }
-  
-  # return(measures)
-  svmPredictions <- list()
-  return(list(test_predictedProbs, svmPredictions))
+
+  return(list(test_rfpredictedProbs, test_svmpredictedProbs))
 }
 
 # Function to create a decision tree of 30 trials with rules applied
@@ -156,10 +224,10 @@ ModelMelric<-function(training_data, testing_data, formula){
   predictionsAsProbability <- predict(basicTree, testingFields, type = "prob")
   
   classLabel <- 1
- 
+
   # Pulls out a single column from the two lists of probabilities for each class
   classIndex<-which(as.numeric(colnames(predictionsAsProbability))==classLabel)
-
+  
   # Gets the predictions for the other column and returns back to the caller
   test_predictedProbs <-predictionsAsProbability[,classIndex]
 
@@ -176,15 +244,16 @@ ModelMelric<-function(training_data, testing_data, formula){
                              probability=TRUE)
   
   svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
-  
-  return(list(test_predictedProbs, svmPredictions))
-}
 
+  
+  return(list(test_predictedProbs, svm_pred))
+}
 
 ModelZion<-function(training_data, testing_data, formula){
   predictions <- list()
   svmPredictions <- list()
   return(list(predictions, svmPredictions))
 }
+
 debugSource("dataprep.R")
 
