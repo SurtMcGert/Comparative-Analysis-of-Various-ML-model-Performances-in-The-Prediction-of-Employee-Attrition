@@ -209,24 +209,28 @@ ModelMelric<-function(training_data, testing_data, formula){
 }
 
 ModelZion<-function(training_data, testing_data, formula){
-  h2o.init()
-  training_data$Attrition <- as.factor(training_data$Attrition)
-  inputs <- colnames(training_data[,-2])
-  # print(training_data$attrition)
-  target <- "Attrition"
   
-  nbModel <- h2o.naiveBayes(x = inputs, y = target, training_frame = as.h2o(training_data), laplace = 0, nfolds = 5, seed = 64)
+  # training_data <- rebalance(training_data, "under","Attrition")
+  # Predict using SVM model
+  supportVectorMachine = svm(formula, training_data, cost=1, kernel="linear", probability=TRUE, cross=5)
+  svmPredictions <- predict(supportVectorMachine, testing_data, type="prob")
   
-  nbPerformance <- h2o.performance(nbModel)
+  # svmPredictions <- predict(supportVectorMachine, newdata = select(testing_data,-Attrition), type="prob")
   
-  print(nbPerformance)
+  # Represent target as factors
+  training_data$Attrition <- factor(training_data$Attrition)
   
-  predictions <- h2o.predict(nbModel, newdata = as.h2o(testing_data))
-
-  svmPredictions <- list()
+  # Create Naive Bayes model
+  nbModel <- naive_bayes(formula, data = training_data, laplace = 1, usekernel=T)
+  # nbModel <- multinomial_naive_bayes(x = training_data[-c(2)], y = training_data$Attrition)
+  # Predict using created model
+  predictionsRaw <- predict(nbModel, newdata = select(testing_data,-Attrition), type="prob")
   
-  print(predictions)
+  classIdx <- which(as.numeric(colnames(predictionsRaw))==1)
   
+  predictions <- predictionsRaw[,classIdx]
+  
+  # Return Naive Bayes predictions and SVM predictions
   return(list(predictions, svmPredictions))
 }
 
