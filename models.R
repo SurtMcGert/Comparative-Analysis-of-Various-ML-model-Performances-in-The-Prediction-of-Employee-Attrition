@@ -208,27 +208,54 @@ ModelMelric<-function(training_data, testing_data, formula){
   return(list(test_predictedProbs, svmPredictions))
 }
 
-ModelZion<-function(training_data, testing_data, formula){
-  
-  # training_data <- rebalance(training_data, "under","Attrition")
+
+#' Naive Bayes and SVM classifiers
+#'
+#' @param training_data Dataframe containing training data
+#' @param testing_data Dataframe containing testing data
+#' @param formula Formula for model, currently using Attrition as target
+#'
+#' @return List with probabilities for the Naive Bayes and SVM classifiers
+#' @export
+#'
+#' @examples
+#' ModelZion(training_data, testing_data, Attrition ~ .)
+#'
+ModelZion <- function(training_data, testing_data, formula) {
   # Predict using SVM model
-  supportVectorMachine = svm(formula, training_data, cost=1, kernel="linear", probability=TRUE, cross=5)
-  svmPredictions <- predict(supportVectorMachine, testing_data, type="prob")
-  
-  # svmPredictions <- predict(supportVectorMachine, newdata = select(testing_data,-Attrition), type="prob")
+  supportVectorMachine = svm(
+    formula,
+    training_data,
+    cost = 1,
+    kernel = "linear",
+    probability = TRUE,
+    cross = 5
+  )
+  svmPredictions <-
+    predict(supportVectorMachine, testing_data, type = "prob")
   
   # Represent target as factors
-  training_data$Attrition <- factor(training_data$Attrition)
+  training_data$Attrition <- as.factor(training_data$Attrition)
+  testing_data$Attrition <- as.factor(testing_data$Attrition)
   
   # Create Naive Bayes model
-  nbModel <- naive_bayes(formula, data = training_data, laplace = 1, usekernel=T)
-  # nbModel <- multinomial_naive_bayes(x = training_data[-c(2)], y = training_data$Attrition)
+  nbModel <-
+    naive_bayes(
+      formula,
+      data = training_data,
+      laplace = 0,
+      usekernel = TRUE,
+      usepoisson = TRUE
+    )
   # Predict using created model
-  predictionsRaw <- predict(nbModel, newdata = select(testing_data,-Attrition), type="prob")
+  predictionsRaw <-
+    predict(nbModel,
+            newdata = select(testing_data, -Attrition),
+            type = "prob")
   
-  classIdx <- which(as.numeric(colnames(predictionsRaw))==1)
+  classIdx <- which(as.numeric(colnames(predictionsRaw)) == 1)
   
-  predictions <- predictionsRaw[,classIdx]
+  predictions <- predictionsRaw[, classIdx]
   
   # Return Naive Bayes predictions and SVM predictions
   return(list(predictions, svmPredictions))
