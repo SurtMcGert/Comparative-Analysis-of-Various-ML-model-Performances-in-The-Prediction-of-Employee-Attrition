@@ -35,11 +35,8 @@ ModelChris<-function(training_data, testing_data, formula){
   
   predictions <- predict.glmnet(object = logisticModel, newx = as.matrix(testing_data), type = "response")
   
-  print(predictions)
-  
-  
   # SVM
-  supportVectorMachine = svm(formula, training_data, cost = 8, kernel = "linear", gamma = 0.4, probability = TRUE)
+  supportVectorMachine = svm(formula, training_data, cost = 0.05, kernel = "sigmoid", gamma = 0.05, cross = 10, probability = TRUE)
   svmPredictions<-predict(supportVectorMachine, testing_data, type = "response")
   
   return(list(predictions, svmPredictions))
