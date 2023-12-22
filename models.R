@@ -73,7 +73,7 @@ ModelChris<-function(training_data, testing_data, formula){
 # - plot: A logical value indicating whether to plot feature importance (default is TRUE)
 ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
   set.seed(123)
-  
+  # SVM
   svm_model = svm(formula, 
                   training_data, 
                   type="nu-regression", 
@@ -81,39 +81,24 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
                   cost=0.1, 
                   kernel="polynomial", 
                   degree="2", 
-                  gamma=0.5, 
-                  tolerance=0.001, 
+                  gamma=0.06, 
                   probability=TRUE)
   test_svmpredictedProbs<-predict(svm_model, testing_data, type="response")
   
   # RF
-  rf <- RFTrainer$new(classification=1,
-                      seed=42,
-                      verbose=TRUE)
-  
-  parameters = list(
-    n_estimators = c(500, 1000, 1500, 2000, 3000),
-    max_depth = c(1, 10, 50)
-  )
+  rf <- RFTrainer$new(classification=1, seed=42, verbose=TRUE)
+
+  parameters = list(n_estimators = c(500, 1000, 1500, 2000, 3000), max_depth = c(1, 10, 50))
   
   # Tune ntrees and max_nodes
-  gst <-GridSearchCV$new(trainer = rf,
-                         parameters = parameters,
-                         n_folds = 3,
-                         scoring = c('accuracy','auc'))
+  gst <-GridSearchCV$new(trainer = rf, parameters = parameters, n_folds = 3, scoring = c('accuracy','auc'))
+  
   gst$fit(training_data, "Attrition")
   best_params <- gst$best_iteration()
   n_estimators = best_params$n_estimators
   max_depth = best_params$max_depth
   results <- data.frame(gst$results)
-  print("Summary of ntrees and max-node tuning:")
-  print(gst$evaluation_scores)
-  print("Best tree number")
-  print(n_estimators)
-  print("Best node depth")
-  print(max_depth)
-  
-  
+
   # Tune mtry
   sqrt_ncols <- sqrt(ncol(training_data))
   metric <- 'auc'
@@ -122,13 +107,7 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
     .mtry = floor(sqrt_ncols) + c(-2, 0, 2)
   )
   
-  ctrl <- trainControl(
-    method = "repeatedcv",
-    number = 5,
-    summaryFunction = twoClassSummary,
-    classProbs = TRUE,
-    search='grid'
-  )
+  ctrl <- trainControl(method = "repeatedcv", number = 5, summaryFunction = twoClassSummary, classProbs = TRUE, search='grid')
   
   # Inputs must be factors
   training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
@@ -137,27 +116,12 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
   testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
   levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
   
-  rf_model <- train(
-    Attrition ~ ., data = training_data,
-    method = "rf",
-    metric = metric,
-    trControl = ctrl,
-    tuneGrid = param_grid
-  )
-  
-  print("Tune mtry")
-  print(rf_model$results)
+  rf_model <- train(Attrition ~ ., data = training_data, method = "rf", metric = metric, trControl = ctrl, tuneGrid = param_grid)
   
   best_mtry <- rf_model$bestTune$mtry
   
-  final_rf_model <- randomForest(
-    Attrition ~ ., data = training_data,
-    mtry = best_mtry,
-    ntree = n_estimators,
-    max_depth = max_depth
-  )
+  final_rf_model <- randomForest(Attrition ~ ., data = training_data, mtry = best_mtry, ntree = n_estimators, max_depth = max_depth)
   test_rfpredictedProbs <- predict(final_rf_model, newdata = testing_data, type = "prob")[, 2]
-  
   
   # Plot feature importance if specified
   if (plot) {
