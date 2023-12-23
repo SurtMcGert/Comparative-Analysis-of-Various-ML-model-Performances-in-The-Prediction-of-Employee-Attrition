@@ -52,7 +52,7 @@ ModelChris<-function(training_data, testing_data, formula){
   # Remove 'Attrition' field
   # Put into a separate variable since the second model also has to use training_data
   X_training_data = training_data[, -which(names(training_data) == "Attrition")]
-  x_testing_data <- as.matrix(testing_data[, -which(names(testing_data) == "Attrition")])
+  X_testing_data <- as.matrix(testing_data[, -which(names(testing_data) == "Attrition")])
   
   # Cross-validation model
   cv_model <- cv.glmnet(as.matrix(X_training_data), y = y_train, family = "binomial", type.measure = "mse", nfolds = 10, alignment = "fraction")
@@ -60,11 +60,10 @@ ModelChris<-function(training_data, testing_data, formula){
   # Extract best lambda
   best_lambda <- cv_model$lambda.min
   
-  # Train model using the best lambda
+  # Re-train using best lambda (alpha = 0 means ridge penalty, alpha = 1 means lasso penalty)
   logisticModel <- glmnet(x = X_training_data, y = y_train, family = "binomial", alpha = 1, lambda = best_lambda)
   
-  # Generate predictions
-  predictions <- predict(logisticModel, newx = x_testing_data, type = "response")
+  predictions <- predict(logisticModel, newx = X_testing_data, type = "response")
     
   # SVM
   supportVectorMachine = svm(formula, training_data, cost = 0.05, kernel = "sigmoid", gamma = 0.05, cross = 10, probability = TRUE)
