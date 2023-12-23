@@ -6,9 +6,6 @@
 # testing_data - data frame - the data to evaluate the model on
 # formula - R formula object - formula for model to use
 ModelHarry<-function(training_data, testing_data, formula){
-  predictions <- list()
-  svmPredictions <- list()
-  return(list(predictions, svmPredictions))
   # neural network
   numOfInputs = length(all.vars(update(formula, z ~.))) - 1
   print(paste("number of Inputs: ", numOfInputs))
@@ -82,9 +79,6 @@ ModelChris<-function(training_data, testing_data, formula){
 # - formula: specific formula for dataset
 # - plot: A logical value indicating whether to plot feature importance (default is TRUE)
 ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
-  predictions <- list()
-  svmPredictions <- list()
-  return(list(predictions, svmPredictions))
   set.seed(123)
   # SVM
   svm_model = svm(formula, 
@@ -155,9 +149,6 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
 # returns the predictions for the column of class 1 for decision tree and SVM
 ModelMelric<-function(training_data, testing_data, formula){
   
-  predictions <- list()
-  svmPredictions <- list()
-  return(list(predictions, svmPredictions))
   # Split training set into training and 'validation' using subset
   
   validationIndices <- sample(1:nrow(training_data), 0.7 * nrow(training_data))
