@@ -45,17 +45,27 @@ ModelHarry<-function(training_data, testing_data, formula){
 
 ModelChris<-function(training_data, testing_data, formula){
   print("Running Chris model")
-
+  
+  # Copy 'Attrition' field as a factor before it is removed
+  y_train = as.factor(training_data$Attrition)
+  
+  # Remove 'Attrition' field
+  # Put into a separate variable since the second model also has to use training_data
+  X_training_data = training_data[, -which(names(training_data) == "Attrition")]
+  x_testing_data <- as.matrix(testing_data[, -which(names(testing_data) == "Attrition")])
+  
   # Cross-validation model
-  cv_model <- cv.glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", type.measure = "mse", nfolds = 10, alignment = "fraction")
-  # Select best lambda
+  cv_model <- cv.glmnet(as.matrix(X_training_data), y = y_train, family = "binomial", type.measure = "mse", nfolds = 10, alignment = "fraction")
+  
+  # Extract best lambda
   best_lambda <- cv_model$lambda.min
-  # Re-train using best lambda (alpha = 0 means ridge penalty, alpha = 1 means lasso penalty)
-
-  logisticModel <- glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", lower.limit = -1, upper.limit = 1, lambda = best_lambda, alpha = 1)
   
-  predictions <- predict.glmnet(object = logisticModel, newx = as.matrix(testing_data), type = "response")
+  # Train model using the best lambda
+  logisticModel <- glmnet(x = X_training_data, y = y_train, family = "binomial", alpha = 1, lambda = best_lambda)
   
+  # Generate predictions
+  predictions <- predict(logisticModel, newx = x_testing_data, type = "response")
+    
   # SVM
   supportVectorMachine = svm(formula, training_data, cost = 0.05, kernel = "sigmoid", gamma = 0.05, cross = 10, probability = TRUE)
   svmPredictions<-predict(supportVectorMachine, testing_data, type = "response")
