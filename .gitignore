@@ -5,3 +5,5 @@
 tests.R
 UCI-G.csv
 /dataset
+*.png
+/plots

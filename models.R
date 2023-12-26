@@ -55,18 +55,29 @@ ModelChris<-function(training_data, testing_data, formula){
   X_testing_data <- as.matrix(testing_data[, -which(names(testing_data) == "Attrition")])
   
   # Cross-validation model
-  cv_model <- cv.glmnet(as.matrix(X_training_data), y = y_train, family = "binomial", type.measure = "mse", nfolds = 10, alignment = "fraction")
+  cv_model <- cv.glmnet(as.matrix(X_training_data), y = y_train, family = "binomial", nfolds = 10)
   
   # Extract best lambda
   best_lambda <- cv_model$lambda.min
   
   # Re-train using best lambda (alpha = 0 means ridge penalty, alpha = 1 means lasso penalty)
-  logisticModel <- glmnet(x = X_training_data, y = y_train, family = "binomial", alpha = 1, lambda = best_lambda)
+  logisticModel <- glmnet(x = X_training_data,
+                          y = y_train,
+                          family = "binomial",
+                          alpha = 1,
+                          lambda = best_lambda)
   
   predictions <- predict(logisticModel, newx = X_testing_data, type = "response")
     
   # SVM
-  supportVectorMachine = svm(formula, training_data, cost = 0.05, kernel = "sigmoid", gamma = 0.05, cross = 10, probability = TRUE)
+  supportVectorMachine = svm(formula,
+                             training_data,
+                             type = "nu-regression",
+                             cost = 0.05,
+                             kernel = "sigmoid",
+                             gamma = 0.075,
+                             cross = 10,
+                             probability = TRUE)
   svmPredictions<-predict(supportVectorMachine, testing_data, type = "response")
   
   return(list(predictions, svmPredictions))
