@@ -54,8 +54,7 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
                   cost=0.1, 
                   kernel="polynomial", 
                   degree="2", 
-                  gamma=0.5, 
-                  tolerance=0.001, 
+                  gamma=0.06, 
                   probability=TRUE)
   test_svmpredictedProbs<-predict(svm_model, testing_data, type="response")
   
