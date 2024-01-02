@@ -158,7 +158,7 @@ displayPerformance <- function(probs, testing_data, name) {
       geom_vline(aes(xintercept = min), color = "red") + # draw a red vertical line at the minimum of each metric
       geom_vline(aes(xintercept = max), color = "green") + # draw a green vertical line at the maximum of each metric
       facet_wrap( ~ variable) + # put the data for each variable in its own box
-      theme_bw() + # the black and white theme
+      theme_minimal() + # the minimal theme
       labs(x = "threshold", title = name) # set the title of the plot
   )
 }

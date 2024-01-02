@@ -315,16 +315,40 @@ cleanData <- function(dataset, remove = list()) {
 #'
 #' @examples
 plotOutliers <- function(sorted, outliers, fieldName) {
-  plot(
-    1:length(sorted),
-    sorted,
-    pch = 1,
-    xlab = "Unique records",
-    ylab = paste("Sorted values", fieldName),
-    bty = "n"
+  # plot(
+  #   1:length(sorted),
+  #   sorted,
+  #   pch = 1,
+  #   xlab = "Unique records",
+  #   ylab = paste("Sorted values", fieldName),
+  #   bty = "n"
+  # )
+  df <- data.frame(
+    x = 1:length(sorted),
+    y = sorted
   )
+  
   if (length(outliers) > 0) {
-    points(outliers, sorted[outliers], col = "red", pch = 19)
+    outliersToPlot <- data.frame(
+      x = outliers,
+      y = sorted[outliers]
+    )
+    print(
+      ggplot() +
+      geom_point(df, mapping=aes(x, y, label=NULL)) +
+      geom_point(outliersToPlot, mapping=aes(x, y, label=NULL, color="F8766D")) +
+      theme_minimal() +
+      labs(x="Unique records", y=paste("Sorted values", fieldName), title = paste("Outliers for", fieldName)) +
+      theme(legend.position="none")
+    )
+  } else {
+    print(
+      df %>%
+        ggplot(aes(x, y, label=NULL)) +
+        geom_point() +
+        theme_minimal() +
+        labs(x="Unique records", y=paste("Sorted values", fieldName), title = paste("Outliers for", fieldName))
+    )
   }
 }
 
@@ -765,7 +789,7 @@ plotData <- function(data, fieldNameOutput, fieldTypes) {
             y = !!sym(fieldNameOutput)
           )) +
           geom_point(size = 5, alpha = 0.1) +
-          theme_bw() +
+          theme_minimal() +
           labs(title = title)
       )
       
@@ -785,7 +809,8 @@ plotData <- function(data, fieldNameOutput, fieldTypes) {
           geom_bar(stat = "identity", aes(fill = !!sym(
             fieldNameOutput
           )), position = "dodge") +
-          labs(y = "count", x = name)
+          theme_minimal() +
+          labs(y = "count", x = name, title = title)
       )
       
       # a density plot of the variable if it is continuous
@@ -798,7 +823,7 @@ plotData <- function(data, fieldNameOutput, fieldTypes) {
               fill = name
             )) +
             geom_density(alpha = 0.2) +
-            theme_bw() +
+            theme_minimal() +
             labs(title = name)
         )
       } else {
@@ -810,7 +835,7 @@ plotData <- function(data, fieldNameOutput, fieldTypes) {
                   fill = name
                 )) +
                 geom_bar() +
-                theme_bw() +
+                theme_minimal() +
                 labs(title = name))
       }
     }
