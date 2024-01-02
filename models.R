@@ -1,5 +1,3 @@
-# File containing all models - each contributor has their own model
-
 # Function to create a MLP classifier and SVM and evaluate both
 # inputs:
 # training_data - data frame - the data to train the model on
@@ -13,29 +11,73 @@ ModelHarry<-function(training_data, testing_data, formula){
   print(paste(layers))
   print("training")
   set.seed(123)
-  nn=neuralnet(formula,data=training_data, stepmax = 8000, lifesign.step = 500, hidden=layers, act.fct="logistic", err.fct="ce", algorithm="backprop", learningrate = 0.01, threshold=5, rep=1, linear.output = FALSE, lifesign = "full")
+  nn=neuralnet(formula,data=training_data, 
+               stepmax = 8000, 
+               lifesign.step = 500, 
+               hidden=layers, 
+               act.fct="logistic", 
+               err.fct="ce", 
+               algorithm="backprop", 
+               learningrate = 0.01, 
+               threshold=5, 
+               rep=1, 
+               linear.output = FALSE, 
+               lifesign = "full")
   predictions<-predict(nn, testing_data, type="response")
   
   # SVM
-  supportVectorMachine = svm(formula, training_data, cost=0.1, kernel="linear", gamma=0.1, probability=TRUE)
+  supportVectorMachine = svm(formula, 
+                             training_data, 
+                             type="nu-regression", 
+                             nu=0.3, 
+                             cost=0.1, 
+                             kernel="polynomial", 
+                             degree="5", 
+                             gamma=0.5, 
+                             tolerance = 0.001, 
+                             probability=TRUE)
   svmPredictions<-predict(supportVectorMachine, testing_data, type="response")
-
+  
   return(list(predictions, svmPredictions))
 }
 
 ModelChris<-function(training_data, testing_data, formula){
   print("Running Chris model")
-
+  
+  # Copy 'Attrition' field as a factor before it is removed
+  y_train = as.factor(training_data$Attrition)
+  
+  # Remove 'Attrition' field
+  # Put into a separate variable since the second model also has to use training_data
+  X_training_data = training_data[, -which(names(training_data) == "Attrition")]
+  X_testing_data <- as.matrix(testing_data[, -which(names(testing_data) == "Attrition")])
+  
   # Cross-validation model
-  cv_model <- cv.glmnet(x = as.matrix(training_data), y = training_data$Attrition)
-  # Select best lambda
+  cv_model <- cv.glmnet(as.matrix(X_training_data), y = y_train, family = "binomial", nfolds = 10)
+  
+  # Extract best lambda
   best_lambda <- cv_model$lambda.min
+  
   # Re-train using best lambda (alpha = 0 means ridge penalty, alpha = 1 means lasso penalty)
-  logisticModel <- glmnet(x = as.matrix(training_data), y = training_data$Attrition, family = "binomial", lambda = best_lambda, alpha = 1)
-
-  predictions <- predict(object = logisticModel, newx = as.matrix(testing_data), type="response", s = best_lambda, alpha = 1)
-
-  svmPredictions <- list()
+  logisticModel <- glmnet(x = X_training_data,
+                          y = y_train,
+                          family = "binomial",
+                          alpha = 1,
+                          lambda = best_lambda)
+  
+  predictions <- predict(logisticModel, newx = X_testing_data, type = "response")
+  
+  # SVM
+  supportVectorMachine = svm(formula,
+                             training_data,
+                             type = "nu-regression",
+                             cost = 0.05,
+                             kernel = "sigmoid",
+                             gamma = 0.075,
+                             cross = 10,
+                             probability = TRUE)
+  svmPredictions<-predict(supportVectorMachine, testing_data, type = "response")
+  
   return(list(predictions, svmPredictions))
 }
 
@@ -46,6 +88,7 @@ ModelChris<-function(training_data, testing_data, formula){
 # - plot: A logical value indicating whether to plot feature importance (default is TRUE)
 ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
   set.seed(123)
+  
   
   svm_model = svm(formula, 
                   training_data, 
@@ -148,33 +191,64 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
 # testing_data - data frame - the data to evaluate the model on
 #outputs:
 # returns the predictions for the column of class 1
-ModelMelric<-function(training_data, testing_data){
-  # Rebalancing dataset (appears that it is not needed for the model):
-  #training_data <- rebalance(training_data, "both", "Attrition")
-  #testing_data <- rebalance(testing_data, "under", "Attrition")
+# Function to create a decision tree of 30 trials with rules applied
+# inputs:
+# training_data - data frame - the data to train the model on
+# testing_data - data frame - the data to evaluate the model on
+# outputs:
+# returns the predictions for the column of class 1 for decision tree and SVM
+ModelMelric<-function(training_data, testing_data, formula){
   
-  predictedFieldLocationTrain <- which(names(training_data)=="Attrition")
-  trainingFields <- training_data[, -predictedFieldLocationTrain]
+  newtraining_data <- training_data
+  newtesting_data <- testing_data
   
-  groundTruth <- factor(training_data[, predictedFieldLocationTrain])
+  # Split training set into training and 'validation' using subset
   
-  # cost_matrix <- matrix(c(0, 1, 1, 15), nrow = 2, dimnames = list(c("0", "1"), c("0", "1")))
+  validationIndices <- sample(1:nrow(newtraining_data), 0.7 * nrow(newtraining_data))
   
-  #basicTree <- C5.0(x = trainingFields, y = groundTruth, trials = 30, rules= TRUE, costs = cost_matrix)
-  basicTree <- C5.0(x = trainingFields, y = groundTruth, trials = 30, rules= TRUE)
+  newtraining_data <- newtraining_data[validationIndices, ]
+  newvalidation_data <- newtraining_data[setdiff(1:nrow(newtraining_data), validationIndices), ]
+  
+  
+  predictedFieldLocationTrain <- which(names(newtraining_data)=="Attrition")
+  trainingFields <- newtraining_data[, -predictedFieldLocationTrain]
+  
+  groundTruth <- factor(newtraining_data[, predictedFieldLocationTrain])
+  
+  basicTree <- C5.0(x = trainingFields, y = groundTruth, trials = 25, rules= TRUE)
+  
+  
+  # # Inputs must be factors
+  # newtraining_data[, "Attrition"] <- factor(newtraining_data[, "Attrition"])
+  # levels(newtraining_data$Attrition) <- make.names(levels(newtraining_data$Attrition))
+  # 
+  # newtesting_data[, "Attrition"] <- factor(newtesting_data[, "Attrition"])
+  # levels(newtesting_data$Attrition) <- make.names(levels(newtesting_data$Attrition))
   
   # print(summary(basicTree))
   
+  # Perform evaluation on validation set and print confusion metrics to see statistics
+  validationFieldLocation <- which(names(newvalidation_data) == "Attrition")
+  validationFields <- newvalidation_data[,-validationFieldLocation]
+  
+  validationProbability <- predict(basicTree, validationFields, type = "prob")
+  
+  # Choose the class with the highest probability
+  valPredicted <- colnames(validationProbability)[apply(validationProbability, 1, which.max)]
+  
+  cm <- confusionMatrix(as.factor(valPredicted), as.factor(newvalidation_data$Attrition))
+  
+  print(cm)
+  
+  # Issue with using a validation set is that there isnt enough data? Accuracy on validation set is 100% ?
+  
   # Performing Evaluation
   
-  predictedFieldLocationTest <- which(names(testing_data) == "Attrition")
-  testingFields <- testing_data[,-predictedFieldLocationTest]
+  predictedFieldLocationTest <- which(names(newtesting_data) == "Attrition")
+  testingFields <- newtesting_data[,-predictedFieldLocationTest]
   
   # Predicts using the tree and returns probability for each class
-  # predictionsAsProbability <- testPredictedClassProbs <- predict(basicTree, testingFields, type = "prob")
-  
   predictionsAsProbability <- predict(basicTree, testingFields, type = "prob")
-  # predictionsAsProbability <- predict(basicTree, testingFields)
   
   classLabel <- 1
   
@@ -184,27 +258,84 @@ ModelMelric<-function(training_data, testing_data){
   # Gets the predictions for the other column and returns back to the caller
   test_predictedProbs <-predictionsAsProbability[,classIndex]
   
-  # class_probs <- table(predictionsAsProbability) / length(predictionsAsProbability)
-  # 
-  # test_predictedProbs <- class_probs["1"]
-  # 
-  # 
-  # conf_matrix <- confusionMatrix(as.factor(predictionsAsProbability), as.factor(testing_data$Attrition))
   
-  # Print the confusion matrix
-  # print(conf_matrix)
+  # SVM
+  supportVectorMachine = svm(formula,
+                             training_data,
+                             cost=10,
+                             kernel="radial",
+                             gamma=0.3,
+                             nu=0.5,
+                             type="nu-regression",
+                             scale=TRUE,
+                             probability=TRUE)
   
-  #return(predictedLabels)
+  svmPredictions<-predict(supportVectorMachine, newtesting_data, type="response")
   
-  svm_pred <- list()
-  
-  
-  return(list(test_predictedProbs, svm_pred))
+  return(list(test_predictedProbs, svmPredictions))
 }
 
-ModelZion<-function(training_data, testing_data, formula){
-  predictions <- list()
-  svmPredictions <- list()
+#' Naive Bayes and SVM classifiers
+#'
+#' @param training_data Dataframe containing training data
+#' @param testing_data Dataframe containing testing data
+#' @param formula Formula for model, currently using Attrition as target
+#'
+#' @return List with probabilities for the Naive Bayes and SVM classifiers
+#' @export
+#'
+#' @examples
+#' ModelZion(training_data, testing_data, Attrition ~ .)
+#'
+ModelZion <- function(training_data, testing_data, formula) {
+  set.seed(123)
+  
+  trainingNB <- training_data
+  trainingSVM <- training_data
+  testingNB <- testing_data
+  testingSVM <- testing_data
+  
+  print(str(trainingNB))
+  
+  trainingNB[] <- lapply(trainingNB, factor)
+  testingNB[] <- lapply(testingNB, factor)
+  
+  print(str(trainingNB))
+  
+  # Create Naive Bayes model
+  nbModel <-
+    naiveBayes(
+      formula,
+      data = trainingNB,
+      laplace = 1
+    )
+  # Predict using created model
+  predictionsRaw <-
+    predict(nbModel,
+            newdata = testingNB,
+            type = "raw")
+  
+  print(head(predictionsRaw))
+  
+  classIdx <- which(as.numeric(colnames(predictionsRaw)) == 1)
+  
+  predictions <- predictionsRaw[, classIdx]
+  
+  # Predict using SVM model
+  supportVectorMachine = svm(
+    formula,
+    trainingSVM,
+    cost = 1,
+    kernel = "linear",
+    probability = TRUE,
+    cross = 5
+  )
+  svmPredictions <-
+    predict(supportVectorMachine, testingSVM, type = "response")
+  
+  print(head(svmPredictions))
+  
+  # Return Naive Bayes predictions and SVM predictions
   return(list(predictions, svmPredictions))
 }
 

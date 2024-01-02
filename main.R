@@ -224,7 +224,7 @@ Model<-function(training_data,testing_data, plot_heading){
     ModelHarry(training_data, testing_data, formular),
     ModelChris(training_data, testing_data, formular),
     ModelAnna(training_data, testing_data, formular),
-    ModelMelric(training_data, testing_data),
+    ModelMelric(training_data, testing_data, formular),
     ModelZion(training_data, testing_data, formular)
   )
   
