@@ -385,6 +385,8 @@ removeOutliers<-function(continuous,confidence){
     # Sort the data in decreasing order
     sorted<-unique(sort(continuous[,field],decreasing=TRUE))
     outliers<-which(outliers::scores(sorted,type="chisq",prob=abs(confidence)))
+    print("NUMBER OF OUTLIERS:")
+    print(length(outliers))
     plotOutliers(sorted,outliers,colnames(continuous)[field])
     #If found records with outlier values
     if ((length(outliers>0))){

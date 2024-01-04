@@ -88,7 +88,8 @@ ModelChris<-function(training_data, testing_data, formula){
 # - plot: A logical value indicating whether to plot feature importance (default is TRUE)
 ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
   set.seed(123)
-  
+  newtesting_data <- testing_data
+  newtraining_data <- training_data
   
   svm_model = svm(formula, 
                   training_data, 
@@ -121,13 +122,6 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
   n_estimators = best_params$n_estimators
   max_depth = best_params$max_depth
   results <- data.frame(gst$results)
-  print("Summary of ntrees and max-node tuning:")
-  print(gst$evaluation_scores)
-  print("Best tree number")
-  print(n_estimators)
-  print("Best node depth")
-  print(max_depth)
-  
   
   # Tune mtry
   sqrt_ncols <- sqrt(ncol(training_data))
@@ -146,14 +140,14 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
   )
   
   # Inputs must be factors
-  training_data[, "Attrition"] <- factor(training_data[, "Attrition"])
-  levels(training_data$Attrition) <- make.names(levels(training_data$Attrition))
+  newtraining_data[, "Attrition"] <- factor(newtraining_data[, "Attrition"])
+  levels(newtraining_data$Attrition) <- make.names(levels(newtraining_data$Attrition))
   
-  testing_data[, "Attrition"] <- factor(testing_data[, "Attrition"])
-  levels(testing_data$Attrition) <- make.names(levels(testing_data$Attrition))
+  newtesting_data[, "Attrition"] <- factor(newtesting_data[, "Attrition"])
+  levels(newtesting_data$Attrition) <- make.names(levels(newtesting_data$Attrition))
   
   rf_model <- train(
-    Attrition ~ ., data = training_data,
+    Attrition ~ ., data = newtraining_data,
     method = "rf",
     metric = metric,
     trControl = ctrl,
@@ -166,12 +160,12 @@ ModelAnna <- function(training_data, testing_data, formula, plot = TRUE) {
   best_mtry <- rf_model$bestTune$mtry
   
   final_rf_model <- randomForest(
-    Attrition ~ ., data = training_data,
+    Attrition ~ ., data = newtraining_data,
     mtry = best_mtry,
     ntree = n_estimators,
     max_depth = max_depth
   )
-  test_rfpredictedProbs <- predict(final_rf_model, newdata = testing_data, type = "prob")[, 2]
+  test_rfpredictedProbs <- predict(final_rf_model, newdata = newtesting_data, type = "prob")[, 2]
   
   
   # Plot feature importance if specified

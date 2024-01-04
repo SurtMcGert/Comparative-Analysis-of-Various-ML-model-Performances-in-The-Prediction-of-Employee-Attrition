@@ -354,6 +354,7 @@ main<-function(){
   # View(combinedML)
   
   # the dataset for ML information
+  print("Dataset 1")
   print(paste("Fields=",ncol(combinedML)))
   
   # Create a TRAINING dataset using HOLDOUT% (e.g. 70) of the records
@@ -375,6 +376,10 @@ main<-function(){
   combinedML<-cbind(continuousReadyforML,categoricalReadyforML)
   # combine the ordered categorical fields that are ready for ML
   combinedML<-cbind(combinedML, orderedCategoricalReadyforML)
+  
+  print("Dataset 2")
+  print(paste("Fields=",ncol(combinedML)))
+  
   # Puts the two training and testing splits into a list
   splitList <- splitDataset(combinedML)
   
